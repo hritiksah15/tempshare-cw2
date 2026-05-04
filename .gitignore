@@ -1,0 +1,17 @@
+# Submission files (CW1 docs, lecture PDFs)
+Submission/
+SETUP_GUIDE.md
+SETUP_GUIDE.pdf
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+coverage/
+*.log
+
+# IDE
+.vscode/
+.idea/

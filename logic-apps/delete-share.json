@@ -1,0 +1,90 @@
+{
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName":      { "type": "string", "defaultValue": "tempshare-delete-share" },
+    "cosmosDbDatabase":  { "type": "string", "defaultValue": "tempsharedb" },
+    "cosmosDbContainer": { "type": "string", "defaultValue": "assets" },
+    "location":          { "type": "string", "defaultValue": "[resourceGroup().location]" }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "manual": {
+              "type": "Request",
+              "kind": "Http",
+              "inputs": { "method": "DELETE", "schema": {} }
+            }
+          },
+          "actions": {
+            "Extract_Asset_ID": {
+              "type": "Compose",
+              "inputs": "@{triggerOutputs()?['queries']?['id']}",
+              "runAfter": {}
+            },
+            "Delete_Cosmos_Document": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": { "name": "@parameters('$connections')['documentdb']['connectionId']" }
+                },
+                "method": "delete",
+                "path": "[concat('/dbs/', parameters('cosmosDbDatabase'), '/colls/', parameters('cosmosDbContainer'), '/docs/@{encodeURIComponent(outputs(''Extract_Asset_ID''))}')]",
+                "headers": {
+                  "x-ms-documentdb-partitionkey": "[@{triggerOutputs()?['queries']?['owner']}]"
+                }
+              },
+              "runAfter": { "Extract_Asset_ID": ["Succeeded"] }
+            },
+            "Delete_Blob": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": { "name": "@parameters('$connections')['azureblob']['connectionId']" }
+                },
+                "method": "delete",
+                "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent('AccountNameFromSettings'))}/files/@{encodeURIComponent(encodeURIComponent(concat('assets/', outputs('Extract_Asset_ID'))))}"
+              },
+              "runAfter": { "Delete_Cosmos_Document": ["Succeeded"] }
+            },
+            "Return_204_No_Content": {
+              "type": "Response",
+              "inputs": {
+                "statusCode": 204,
+                "headers": { "Access-Control-Allow-Origin": "*" }
+              },
+              "runAfter": { "Delete_Blob": ["Succeeded", "Failed"] }
+            },
+            "Handle_Error": {
+              "type": "Response",
+              "inputs": {
+                "statusCode": 500,
+                "headers": { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+                "body": { "error": "Delete failed", "assetId": "@{outputs('Extract_Asset_ID')}" }
+              },
+              "runAfter": {
+                "Delete_Cosmos_Document": ["Failed", "TimedOut"]
+              }
+            }
+          }
+        },
+        "parameters": {
+          "$connections": {
+            "value": {
+              "azureblob":  { "connectionId": "", "connectionName": "azureblob",  "id": "" },
+              "documentdb": { "connectionId": "", "connectionName": "documentdb", "id": "" }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,159 @@
+{
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName":      { "type": "string", "defaultValue": "tempshare-update-share" },
+    "cosmosDbDatabase":  { "type": "string", "defaultValue": "tempsharedb" },
+    "cosmosDbContainer": { "type": "string", "defaultValue": "assets" },
+    "location":          { "type": "string", "defaultValue": "[resourceGroup().location]" }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "manual": {
+              "type": "Request",
+              "kind": "Http",
+              "inputs": {
+                "method": "PATCH",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id":       { "type": "string" },
+                    "ownerID":  { "type": "string" },
+                    "fileName": { "type": "string" },
+                    "ttl":      { "type": "integer" }
+                  }
+                }
+              },
+              "cors": { "allowedOrigins": ["*"] }
+            }
+          },
+          "actions": {
+            "Parse_Request_Body": {
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@triggerBody()",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id":       { "type": "string" },
+                    "ownerID":  { "type": "string" },
+                    "fileName": { "type": "string" },
+                    "ttl":      { "type": "integer" }
+                  }
+                }
+              },
+              "runAfter": {}
+            },
+            "Read_Existing_Document": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": { "name": "@parameters('$connections')['documentdb']['connectionId']" }
+                },
+                "method": "get",
+                "path": "[concat('/dbs/', parameters('cosmosDbDatabase'), '/colls/', parameters('cosmosDbContainer'), '/docs/@{encodeURIComponent(body(''Parse_Request_Body'')?[''id''])}')]",
+                "headers": {
+                  "x-ms-documentdb-partitionkey": "[@{body('Parse_Request_Body')?['ownerID']}]"
+                }
+              },
+              "runAfter": { "Parse_Request_Body": ["Succeeded"] }
+            },
+            "Calculate_New_ExpiresAt": {
+              "type": "Compose",
+              "inputs": "@if(greater(int(coalesce(body('Parse_Request_Body')?['ttl'], '0')), 0), addSeconds(utcNow(), int(body('Parse_Request_Body')?['ttl'])), body('Read_Existing_Document')?['expiresAt'])",
+              "runAfter": { "Read_Existing_Document": ["Succeeded"] }
+            },
+            "Replace_Cosmos_Document": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": { "name": "@parameters('$connections')['documentdb']['connectionId']" }
+                },
+                "method": "put",
+                "path": "[concat('/dbs/', parameters('cosmosDbDatabase'), '/colls/', parameters('cosmosDbContainer'), '/docs/@{encodeURIComponent(body(''Parse_Request_Body'')?[''id''])}')]",
+                "headers": {
+                  "x-ms-documentdb-partitionkey": "[@{body('Parse_Request_Body')?['ownerID']}]"
+                },
+                "body": {
+                  "id":          "@{body('Parse_Request_Body')?['id']}",
+                  "ownerID":     "@{body('Parse_Request_Body')?['ownerID']}",
+                  "fileName":    "@{coalesce(body('Parse_Request_Body')?['fileName'], body('Read_Existing_Document')?['fileName'])}",
+                  "mimeType":    "@{body('Read_Existing_Document')?['mimeType']}",
+                  "blobPath":    "@{body('Read_Existing_Document')?['blobPath']}",
+                  "ttl":         "@{coalesce(body('Parse_Request_Body')?['ttl'], body('Read_Existing_Document')?['ttl'])}",
+                  "uploadedAt":  "@{body('Read_Existing_Document')?['uploadedAt']}",
+                  "expiresAt":   "@{outputs('Calculate_New_ExpiresAt')}",
+                  "status":      "active",
+                  "updatedAt":   "@{utcNow()}"
+                }
+              },
+              "runAfter": { "Calculate_New_ExpiresAt": ["Succeeded"] }
+            },
+            "Return_200_Updated": {
+              "type": "Response",
+              "inputs": {
+                "statusCode": 200,
+                "headers": {
+                  "Content-Type": "application/json",
+                  "Access-Control-Allow-Origin": "*"
+                },
+                "body": {
+                  "id":        "@{body('Parse_Request_Body')?['id']}",
+                  "fileName":  "@{coalesce(body('Parse_Request_Body')?['fileName'], body('Read_Existing_Document')?['fileName'])}",
+                  "ttl":       "@{coalesce(body('Parse_Request_Body')?['ttl'], body('Read_Existing_Document')?['ttl'])}",
+                  "expiresAt": "@{outputs('Calculate_New_ExpiresAt')}",
+                  "message":   "Asset updated successfully"
+                }
+              },
+              "runAfter": { "Replace_Cosmos_Document": ["Succeeded"] }
+            },
+            "Handle_Not_Found": {
+              "type": "Response",
+              "inputs": {
+                "statusCode": 404,
+                "headers": { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+                "body": { "error": "Asset not found", "id": "@{body('Parse_Request_Body')?['id']}" }
+              },
+              "runAfter": {
+                "Read_Existing_Document": ["Failed"]
+              }
+            },
+            "Handle_Error": {
+              "type": "Response",
+              "inputs": {
+                "statusCode": 500,
+                "headers": { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+                "body": { "error": "Update failed", "details": "@{result()}" }
+              },
+              "runAfter": {
+                "Replace_Cosmos_Document": ["Failed", "TimedOut"]
+              }
+            }
+          }
+        },
+        "parameters": {
+          "$connections": {
+            "value": {
+              "documentdb": { "connectionId": "", "connectionName": "documentdb", "id": "" }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "logicAppUrl": {
+      "type": "string",
+      "value": "[listCallbackUrl(resourceId('Microsoft.Logic/workflows/triggers', parameters('logicAppName'), 'manual'), '2019-05-01').value]"
+    }
+  }
+}

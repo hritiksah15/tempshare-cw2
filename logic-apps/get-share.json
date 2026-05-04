@@ -1,0 +1,146 @@
+{
+  
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName":      { "type": "string", "defaultValue": "tempshare-get-share" },
+    "cosmosDbDatabase":  { "type": "string", "defaultValue": "tempsharedb" },
+    "cosmosDbContainer": { "type": "string", "defaultValue": "assets" },
+    "storageAccountName":{ "type": "string" },
+    "storageAccountKey": { "type": "securestring" },
+    "location":          { "type": "string", "defaultValue": "[resourceGroup().location]" }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "manual": {
+              "type": "Request",
+              "kind": "Http",
+              "inputs": { "method": "GET", "schema": {} }
+            }
+          },
+          "actions": {
+            "Check_Request_Type": {
+              "type": "If",
+              "expression": {
+                "and": [{
+                  "not": {
+                    "equals": [ "@{triggerOutputs()?['queries']?['token']}", "" ]
+                  }
+                }]
+              },
+              "runAfter": {},
+              "actions": {
+                "Query_Single_Asset": {
+                  "type": "ApiConnection",
+                  "inputs": {
+                    "host": {
+                      "connection": { "name": "@parameters('$connections')['documentdb']['connectionId']" }
+                    },
+                    "method": "get",
+                    "path": "[concat('/dbs/', parameters('cosmosDbDatabase'), '/colls/', parameters('cosmosDbContainer'), '/docs/@{encodeURIComponent(triggerOutputs()?[''queries'']?[''token''])}')]",
+                    "headers": { "x-ms-documentdb-partitionkey": "[@{triggerOutputs()?['queries']?['user']}]" }
+                  }
+                },
+                "Check_If_Expired": {
+                  "type": "If",
+                  "expression": {
+                    "and": [{
+                      "less": [
+                        "@{body('Query_Single_Asset')?['expiresAt']}",
+                        "@{utcNow()}"
+                      ]
+                    }]
+                  },
+                  "runAfter": { "Query_Single_Asset": ["Succeeded"] },
+                  "actions": {
+                    "Return_410_Gone": {
+                      "type": "Response",
+                      "inputs": {
+                        "statusCode": 410,
+                        "headers": { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+                        "body": { "error": "Gone", "message": "This asset has expired and been automatically deleted." }
+                      }
+                    }
+                  },
+                  "else": {
+                    "actions": {
+                      "Generate_SAS_URL": {
+                        "type": "Compose",
+                        "inputs": "@concat('https://', parameters('storageAccountName'), '.blob.core.windows.net/assets/', body('Query_Single_Asset')?['id'], '?', uriComponent(concat('sp=r&st=', utcNow('yyyy-MM-ddTHH:mm:ssZ'), '&se=', body('Query_Single_Asset')?['expiresAt'], '&spr=https&sv=2022-11-02&sr=b&sig=REPLACE_WITH_REAL_SAS')))"
+                      },
+                      "Return_200_Single": {
+                        "type": "Response",
+                        "inputs": {
+                          "statusCode": 200,
+                          "headers": { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+                          "body": {
+                            "id":         "@{body('Query_Single_Asset')?['id']}",
+                            "fileName":   "@{body('Query_Single_Asset')?['fileName']}",
+                            "mimeType":   "@{body('Query_Single_Asset')?['mimeType']}",
+                            "blobUrl":    "@{outputs('Generate_SAS_URL')}",
+                            "ttl":        "@{body('Query_Single_Asset')?['ttl']}",
+                            "expiresAt":  "@{body('Query_Single_Asset')?['expiresAt']}",
+                            "ownerID":    "@{body('Query_Single_Asset')?['ownerID']}"
+                          }
+                        },
+                        "runAfter": { "Generate_SAS_URL": ["Succeeded"] }
+                      }
+                    }
+                  }
+                }
+              },
+              "else": {
+                "actions": {
+                  "Query_User_Assets": {
+                    "type": "ApiConnection",
+                    "inputs": {
+                      "host": {
+                        "connection": { "name": "@parameters('$connections')['documentdb']['connectionId']" }
+                      },
+                      "method": "post",
+                      "path": "[concat('/dbs/', parameters('cosmosDbDatabase'), '/colls/', parameters('cosmosDbContainer'), '/query')]",
+                      "headers": {
+                        "x-ms-documentdb-isquery": "true",
+                        "x-ms-documentdb-query-enablecrosspartition": "false",
+                        "x-ms-documentdb-partitionkey": "[@{triggerOutputs()?['queries']?['user']}]"
+                      },
+                      "body": {
+                        "query": "SELECT c.id, c.fileName, c.mimeType, c.blobPath, c.ttl, c.expiresAt, c.uploadedAt FROM c WHERE c.ownerID = @ownerID",
+                        "parameters": [{ "name": "@ownerID", "value": "@{triggerOutputs()?['queries']?['user']}" }]
+                      }
+                    }
+                  },
+                  "Return_200_List": {
+                    "type": "Response",
+                    "inputs": {
+                      "statusCode": 200,
+                      "headers": { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+                      "body": "@body('Query_User_Assets')?['Documents']"
+                    },
+                    "runAfter": { "Query_User_Assets": ["Succeeded"] }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": {
+          "$connections": {
+            "value": {
+              "documentdb": { "connectionId": "", "connectionName": "documentdb", "id": "" }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

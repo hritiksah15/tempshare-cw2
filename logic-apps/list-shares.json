@@ -1,0 +1,108 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName":      { "type": "string", "defaultValue": "tempshare-list-shares" },
+    "cosmosDbDatabase":  { "type": "string", "defaultValue": "tempsharedb" },
+    "cosmosDbContainer": { "type": "string", "defaultValue": "assets" },
+    "location":          { "type": "string", "defaultValue": "[resourceGroup().location]" }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "manual": {
+              "type": "Request",
+              "kind": "Http",
+              "inputs": { "method": "GET", "schema": {} },
+              "cors": { "allowedOrigins": ["*"] }
+            }
+          },
+          "actions": {
+            "Extract_User_ID": {
+              "type": "Compose",
+              "inputs": "@{triggerOutputs()?['queries']?['user']}",
+              "runAfter": {}
+            },
+            "Query_User_Assets": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": { "name": "@parameters('$connections')['documentdb']['connectionId']" }
+                },
+                "method": "post",
+                "path": "[concat('/dbs/', parameters('cosmosDbDatabase'), '/colls/', parameters('cosmosDbContainer'), '/query')]",
+                "headers": {
+                  "x-ms-documentdb-isquery": "true",
+                  "x-ms-documentdb-query-enablecrosspartition": "false",
+                  "x-ms-documentdb-partitionkey": "[@{outputs('Extract_User_ID')}]"
+                },
+                "body": {
+                  "query": "SELECT c.id, c.ownerID, c.fileName, c.mimeType, c.blobPath, c.ttl, c.expiresAt, c.uploadedAt, c.status, c.fileSizeBytes FROM c WHERE c.ownerID = @ownerID AND (NOT IS_DEFINED(c.expiresAt) OR c.expiresAt > @now) ORDER BY c.uploadedAt DESC",
+                  "parameters": [
+                    { "name": "@ownerID", "value": "@{outputs('Extract_User_ID')}" },
+                    { "name": "@now", "value": "@{utcNow()}" }
+                  ]
+                }
+              },
+              "runAfter": { "Extract_User_ID": ["Succeeded"] }
+            },
+            "Compute_Stats": {
+              "type": "Compose",
+              "inputs": {
+                "total": "@length(body('Query_User_Assets')?['Documents'])",
+                "assets": "@body('Query_User_Assets')?['Documents']"
+              },
+              "runAfter": { "Query_User_Assets": ["Succeeded"] }
+            },
+            "Return_200_OK": {
+              "type": "Response",
+              "inputs": {
+                "statusCode": 200,
+                "headers": {
+                  "Content-Type": "application/json",
+                  "Access-Control-Allow-Origin": "*",
+                  "X-Total-Count": "@{outputs('Compute_Stats')?['total']}"
+                },
+                "body": "@outputs('Compute_Stats')?['assets']"
+              },
+              "runAfter": { "Compute_Stats": ["Succeeded"] }
+            },
+            "Handle_Error": {
+              "type": "Response",
+              "inputs": {
+                "statusCode": 500,
+                "headers": { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+                "body": { "error": "Failed to list shares", "details": "@{result()}" }
+              },
+              "runAfter": {
+                "Query_User_Assets": ["Failed", "TimedOut"]
+              }
+            }
+          }
+        },
+        "parameters": {
+          "$connections": {
+            "value": {
+              "documentdb": { "connectionId": "", "connectionName": "documentdb", "id": "" }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "logicAppUrl": {
+      "type": "string",
+      "value": "[listCallbackUrl(resourceId('Microsoft.Logic/workflows/triggers', parameters('logicAppName'), 'manual'), '2019-05-01').value]"
+    }
+  }
+}

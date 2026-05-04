@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TempShare+</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:         #faf9f6; /* Light Creamy Day Color */
+      --bg-alt:     #f5f4f0;
+      --surface:    #ffffff;
+      --card:       #ffffff;
+      --card-hover: #fcfcfc;
+      --border:     #e2e2e2;
+      --border-hover:#d1d1d1;
+      --teal:       #00a884; /* Slightly darker for contrast on light bg */
+      --teal-glow:  rgba(0,168,132,.1);
+      --teal-dim:   #007a60;
+      --amber:      #e69500;
+      --amber-glow: rgba(230,149,0,.08);
+      --red:        #d6304a;
+      --red-glow:   rgba(214,48,74,.08);
+      --blue:       #2563eb;
+      --blue-glow:  rgba(37,99,235,.08);
+      --purple:     #7c3aed;
+      --text:       #1a1f26;
+      --text-sec:   #4b5563;
+      --muted:      #9ca3af;
+      --font:       'Inter', -apple-system, sans-serif;
+      --mono:       'JetBrains Mono', monospace;
+      --radius:     12px;
+      --radius-sm:  8px;
+      --radius-xs:  6px;
+      --t:          .2s cubic-bezier(.4,0,.2,1);
+      --shadow:     0 4px 12px rgba(0,0,0,.05);
+      --shadow-lg:  0 8px 24px rgba(0,0,0,.08);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      overflow-x: hidden;
+      line-height: 1.5;
+    }
+
+    /* ── BACKGROUND ───────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 600px 400px at 15% 10%, rgba(0,168,132,.04), transparent),
+        radial-gradient(ellipse 500px 500px at 85% 80%, rgba(37,99,235,.03), transparent),
+        radial-gradient(ellipse 400px 300px at 50% 50%, rgba(124,58,237,.02), transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,168,132,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,168,132,.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 20%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── LOGIN/REGISTER SCREEN ────────────────────────── */
+    #login-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+    }
+    #login-screen::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 700px 500px at 30% 20%, rgba(0,168,132,.05), transparent),
+        radial-gradient(ellipse 600px 600px at 70% 70%, rgba(37,99,235,.04), transparent);
+      pointer-events: none;
+    }
+    #login-screen.hidden { display: none; }
+
+    .login-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 420px;
+      padding: 0 1.5rem;
+    }
+    .login-brand {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+    .login-brand h1 {
+      font-size: 2.4rem;
+      font-weight: 900;
+      letter-spacing: -.03em;
+      color: var(--teal);
+      margin-bottom: .25rem;
+    }
+    .login-brand h1 em {
+      font-style: normal;
+      color: var(--amber);
+    }
+    .login-brand p {
+      font-size: .78rem;
+      color: var(--text-sec);
+      letter-spacing: .02em;
+    }
+
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      box-shadow: var(--shadow-lg);
+    }
+    .login-card h2 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+    }
+
+    .login-field {
+      margin-bottom: 1.15rem;
+    }
+    .login-field label {
+      display: block;
+      font-size: .7rem;
+      font-weight: 600;
+      color: var(--text-sec);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: .4rem;
+    }
+    .login-field input {
+      width: 100%;
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      color: var(--text);
+      padding: .7rem 1rem;
+      font-family: var(--mono);
+      font-size: .85rem;
+      outline: none;
+      transition: border-color var(--t), box-shadow var(--t);
+    }
+    .login-field input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px var(--teal-glow);
+    }
+    .login-field input::placeholder { color: var(--muted); }
+
+    .password-wrapper {
+      position: relative;
+    }
+    .password-wrapper input {
+      padding-right: 2.8rem;
+    }
+    .toggle-password {
+      position: absolute;
+      right: .75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.1rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color var(--t);
+      user-select: none;
+      padding: .2rem;
+    }
+    .toggle-password:hover {
+      color: var(--teal);
+    }
+
+    .login-remember {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      margin-bottom: 1.5rem;
+      font-size: .78rem;
+      color: var(--text-sec);
+    }
+    .login-remember input[type="checkbox"] {
+      accent-color: var(--teal);
+      width: 15px;
+      height: 15px;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: .8rem;
+      border: none;
+      border-radius: var(--radius-xs);
+      background: linear-gradient(135deg, var(--teal), #008f72);
+      color: #fff;
+      font-family: var(--font);
+      font-size: .88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all var(--t);
+      letter-spacing: .02em;
+    }
+    .login-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(0,168,132,.2);
+    }
+    .login-btn:active { transform: translateY(0); }
+
+    .login-footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      font-size: .72rem;
+      color: var(--text-sec);
+    }
+    .login-footer a {
+      color: var(--teal);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .login-error {
+      background: var(--red-glow);
+      border: 1px solid rgba(214,48,74,.2);
+      border-radius: var(--radius-xs);
+      padding: .6rem .9rem;
+      font-size: .78rem;
+      color: var(--red);
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .login-error.show { display: block; }
+
+    /* ── HEADER ───────────────────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 56px;
+      background: rgba(250,249,246,.85);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-weight: 800;
+      font-size: 1.15rem;
+      color: var(--teal);
+      letter-spacing: -.02em;
+      user-select: none;
+    }
+    .logo em { font-style: normal; color: var(--amber); }
+
+    .header-right { display: flex; align-items: center; gap: .5rem; }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: .3rem .75rem .3rem .4rem;
+      font-size: .72rem;
+      color: var(--text-sec);
+      transition: border-color var(--t);
+    }
+    .user-pill:hover { border-color: var(--border-hover); }
+    .user-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .6rem;
+      font-weight: 700;
+      color: #000;
+    }
+    .logout-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-family: var(--font);
+      font-size: .68rem;
+      padding: .3rem .6rem;
+      cursor: pointer;
+      transition: all var(--t);
+    }
+    .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+    nav { display: flex; align-items: center; gap: .25rem; }
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: .78rem;
+      font-weight: 500;
+      padding: .4rem .9rem;
+      border-radius: var(--radius-xs);
+      transition: all var(--t);
+      position: relative;
+    }
+    nav a:hover { color: var(--text-sec); background: rgba(255,255,255,.03); }
+    nav a.active {
+      color: var(--teal);
+      background: var(--teal-glow);
+    }
+
+    /* ── LAYOUT ───────────────────────────────────────── */
+    #app-shell { display: none; }
+    #app-shell.visible { display: block; }
+
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    section { display: none; }
+    section.active { display: block; }
+
+    /* ── CARDS ────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+      transition: border-color var(--t), box-shadow var(--t);
+    }
+    .card:hover {
+      border-color: var(--border-hover);
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+      letter-spacing: -.02em;
+    }
+    .section-title span {
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── UPLOAD SECTION ───────────────────────────────── */
+    #upload-section .card { max-width: 600px; }
+
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 2.5rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--t);
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--teal);
+      background: var(--teal-glow);
+      box-shadow: inset 0 0 40px rgba(0,212,170,.03);
+    }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .dz-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto .75rem;
+      border-radius: 12px;
+      background: var(--teal-glow);
+      border: 1px solid rgba(0,212,170,.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+    .drop-zone .dz-label { color: var(--muted); font-size: .82rem; }
+    .drop-zone .dz-label small { font-size: .72rem; opacity: .7; }
+    .drop-zone .dz-filename {
+      margin-top: .6rem;
+      font-size: .85rem;
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    .field-group { margin-bottom: 1.1rem; }
+    .field-group label {
+      display: block;
+      font-size: .7rem;
+      font-weight: 600;
+      color: var(--text-sec);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      margin-bottom: .4rem;
+    }
+    .field-group select, .field-group input[type="text"] {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      color: var(--text);
+      padding: .65rem 1rem;
+      font-family: var(--mono);
+      font-size: .82rem;
+      outline: none;
+      transition: border-color var(--t), box-shadow var(--t);
+    }
+    .field-group select:focus, .field-group input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px var(--teal-glow);
+    }
+
+    /* ── BUTTONS ──────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      padding: .65rem 1.4rem;
+      border-radius: var(--radius-xs);
+      font-family: var(--font);
+      font-size: .82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--t);
+      border: none;
+      letter-spacing: .02em;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--teal), #00b89c);
+      color: #000;
+      box-shadow: 0 2px 12px rgba(0,212,170,.2);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(0,212,170,.35);
+    }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--red);
+      border: 1px solid rgba(255,77,106,.3);
+      padding: .35rem .75rem;
+      font-size: .72rem;
+    }
+    .btn-danger:hover { background: var(--red-glow); border-color: var(--red); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-sec);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-glow); }
+
+    .btn-edit {
+      background: transparent;
+      color: var(--blue);
+      border: 1px solid rgba(59,139,255,.3);
+      padding: .35rem .75rem;
+      font-size: .72rem;
+    }
+    .btn-edit:hover { background: var(--blue-glow); border-color: var(--blue); }
+    .btn-sm { padding: .35rem .75rem; font-size: .72rem; }
+
+    /* ── PROGRESS & TOAST ─────────────────────────────── */
+    .progress-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 3px;
+      margin-top: 1rem;
+      overflow: hidden;
+      display: none;
+    }
+    .progress-bar.active { display: block; }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal), var(--blue));
+      width: 0%;
+      transition: width .3s ease;
+    }
+
+    #toast-container {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: .5rem;
+    }
+    .toast {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--teal);
+      border-radius: var(--radius-sm);
+      padding: .75rem 1.1rem;
+      font-size: .8rem;
+      color: var(--text);
+      max-width: 340px;
+      box-shadow: var(--shadow);
+      animation: slideIn .25s var(--t);
+    }
+    .toast.error { border-left-color: var(--red); }
+    .toast.warn  { border-left-color: var(--amber); }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(24px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    /* ── GALLERY ──────────────────────────────────────── */
+    #gallery-section .controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .search-box {
+      flex: 1;
+      min-width: 200px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      color: var(--text);
+      padding: .55rem 1rem;
+      font-family: var(--font);
+      font-size: .82rem;
+      outline: none;
+      transition: border-color var(--t), box-shadow var(--t);
+    }
+    .search-box:focus { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-glow); }
+    .filter-select {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      color: var(--text);
+      padding: .55rem .75rem;
+      font-family: var(--font);
+      font-size: .8rem;
+      outline: none;
+      transition: border-color var(--t);
+    }
+    .filter-select:focus { border-color: var(--teal); }
+
+    .assets-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .asset-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: all var(--t);
+      animation: fadeUp .3s ease both;
+    }
+    .asset-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow);
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .asset-thumb {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      display: block;
+      background: var(--surface);
+    }
+    .asset-thumb-placeholder {
+      width: 100%;
+      height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--surface), var(--card));
+      font-size: 2.5rem;
+      color: var(--muted);
+    }
+
+    .asset-meta { padding: 1rem; }
+    .asset-name {
+      font-size: .84rem;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: .3rem;
+    }
+    .asset-info { font-size: .7rem; color: var(--muted); margin-bottom: .5rem; }
+    .asset-ttl { font-size: .72rem; color: var(--muted); margin-bottom: .75rem; }
+
+    .asset-actions {
+      display: flex;
+      gap: .5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .share-token {
+      flex: 1;
+      font-size: .68rem;
+      font-family: var(--mono);
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      background: var(--surface);
+      padding: .3rem .55rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all var(--t);
+    }
+    .share-token:hover { color: var(--teal); background: var(--teal-glow); }
+
+    /* ── STATS ────────────────────────────────────────── */
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      transition: all var(--t);
+    }
+    .stat-item:hover { border-color: var(--border-hover); transform: translateY(-1px); }
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--teal);
+      line-height: 1;
+      letter-spacing: -.02em;
+    }
+    .stat-label {
+      font-size: .68rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-top: .25rem;
+      font-weight: 500;
+    }
+
+    /* ── BADGES ───────────────────────────────────────── */
+    .expiry-badge {
+      display: inline-block;
+      font-size: .65rem;
+      padding: .15rem .5rem;
+      border-radius: 4px;
+      font-weight: 600;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      background: var(--teal-glow);
+      color: var(--teal);
+      border: 1px solid rgba(0,212,170,.2);
+    }
+    .expiry-badge.urgent {
+      background: var(--amber-glow);
+      color: var(--amber);
+      border-color: rgba(255,176,32,.2);
+    }
+    .expiry-badge.expired {
+      background: var(--red-glow);
+      color: var(--red);
+      border-color: rgba(255,77,106,.2);
+    }
+
+    /* ── EMPTY / LOADING ──────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; opacity: .3; }
+    .empty-state p { font-size: .85rem; }
+
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid var(--border);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin: 2rem auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MODAL ─────────────────────────────────────────── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.75);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.visible { display: flex; }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 2rem;
+      width: 90%;
+      max-width: 460px;
+      box-shadow: var(--shadow-lg);
+      animation: fadeUp .25s ease;
+    }
+    .modal h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      color: var(--text);
+    }
+    .modal-actions {
+      display: flex;
+      gap: .75rem;
+      justify-content: flex-end;
+      margin-top: 1.5rem;
+    }
+
+    /* ── TTL DEMO ─────────────────────────────────────── */
+    #demo-section .demo-card { max-width: 600px; }
+    .ttl-countdown {
+      font-size: 3.2rem;
+      font-weight: 900;
+      color: var(--teal);
+      margin: 1rem 0;
+      letter-spacing: -.04em;
+      font-variant-numeric: tabular-nums;
+    }
+    .ttl-countdown.urgent { color: var(--amber); }
+    .ttl-countdown.expired { color: var(--red); }
+    .status-log {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      padding: 1rem;
+      height: 150px;
+      overflow-y: auto;
+      font-family: var(--mono);
+      font-size: .72rem;
+      color: var(--muted);
+    }
+    .log-line { padding: .15rem 0; }
+    .log-line.ok { color: var(--teal); }
+    .log-line.err { color: var(--red); }
+    .log-line.info { color: var(--amber); }
+
+    /* ── AUDIT TABLE ──────────────────────────────────── */
+    .audit-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .78rem;
+    }
+    .audit-table th {
+      text-align: left;
+      padding: .65rem .9rem;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: .68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      border-bottom: 1px solid var(--border);
+    }
+    .audit-table td {
+      padding: .65rem .9rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    .audit-table tr { transition: background var(--t); }
+    .audit-table tr:hover { background: rgba(0,212,170,.02); }
+
+    .action-badge {
+      display: inline-block;
+      font-size: .62rem;
+      padding: .12rem .4rem;
+      border-radius: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+    }
+    .action-badge.upload { background: var(--teal-glow); color: var(--teal); }
+    .action-badge.download { background: var(--blue-glow); color: var(--blue); }
+    .action-badge.delete { background: var(--red-glow); color: var(--red); }
+    .action-badge.update { background: var(--amber-glow); color: var(--amber); }
+    .action-badge.expire { background: var(--red-glow); color: var(--red); }
+
+    /* ── FOOTER ───────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 2rem 1.5rem;
+      font-size: .72rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    footer strong { color: var(--teal); font-weight: 600; }
+
+    /* ── SCROLLBAR ─────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
+
+    /* ── RESPONSIVE ───────────────────────────────────── */
+    @media (max-width: 768px) {
+      header { padding: 0 1rem; }
+      nav a { padding: .35rem .6rem; font-size: .72rem; }
+      main { padding: 1.5rem 1rem 3rem; }
+      .assets-grid { grid-template-columns: 1fr; }
+      .login-brand h1 { font-size: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════ LOGIN SCREEN ══════════ -->
+<div id="login-screen">
+  <div class="login-container">
+    <div class="login-brand">
+      <h1>Temp<em>Share</em>+</h1>
+      <p>Ephemeral Cloud-Native Multimedia Sharing Platform</p>
+    </div>
+    <div class="login-card">
+      <h2 id="login-title">Sign in to continue</h2>
+      <div class="login-error" id="login-error">Invalid email or password.</div>
+      <div class="login-field" id="name-field" style="display:none;">
+        <label>Full Name</label>
+        <input type="text" id="login-name" placeholder="Your Name" />
+      </div>
+      <div class="login-field">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" value="demo@tempshare.dev" />
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="login-password" placeholder="Enter password" value="demo123" />
+          <button type="button" class="toggle-password" id="toggle-password" title="Show/Hide Password">&#x1F441;</button>
+        </div>
+      </div>
+      <div class="login-remember" id="remember-field">
+        <input type="checkbox" id="login-remember" checked />
+        <label for="login-remember">Keep me signed in</label>
+      </div>
+      <button class="login-btn" id="login-btn">Sign In</button>
+      <div class="login-footer" id="login-footer">
+        Don't have an account? <a href="#" id="toggle-auth">Sign Up</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ APP SHELL ══════════ -->
+<div id="app-shell">
+
+<header>
+  <div class="logo">Temp<em>Share</em>+</div>
+  <nav>
+    <a href="#" class="active" data-section="upload-section">Upload</a>
+    <a href="#" data-section="gallery-section">Gallery</a>
+    <a href="#" data-section="demo-section">TTL Demo</a>
+    <a href="#" data-section="audit-section">Audit</a>
+  </nav>
+  <div class="header-right">
+    <div class="user-pill">
+      <div class="user-avatar" id="user-avatar">D</div>
+      <span id="user-display-name">Demo User</span>
+    </div>
+    <button class="logout-btn" id="logout-btn">Sign Out</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- UPLOAD -->
+  <section id="upload-section" class="active">
+    <h1 class="section-title">Upload a <span>File</span></h1>
+    <div class="card">
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept="image/*,video/*,audio/*,application/pdf,.zip,.txt,.docx,.pptx" />
+        <div class="dz-icon">&#x2191;</div>
+        <div class="dz-label">Drag &amp; drop or click to select<br/><small>Images, Video, Audio, PDF, ZIP — max 50 MB</small></div>
+        <div class="dz-filename" id="dz-filename"></div>
+      </div>
+      <div class="field-group">
+        <label>Expiry Duration</label>
+        <select id="expiry-select">
+          <option value="60">60 seconds (TTL Demo)</option>
+          <option value="300">5 minutes</option>
+          <option value="3600" selected>1 hour</option>
+          <option value="21600">6 hours</option>
+          <option value="86400">24 hours</option>
+          <option value="259200">3 days</option>
+          <option value="604800">7 days</option>
+        </select>
+      </div>
+      <input type="hidden" id="user-id" value="user_demo_001" />
+      <button class="btn btn-primary" id="upload-btn" disabled>Upload &amp; Generate Link</button>
+      <div class="progress-bar" id="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div id="upload-result" style="display:none; margin-top:1.25rem;">
+        <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); padding:1.1rem;">
+          <div style="font-size:.68rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.4rem;">Share Link Generated</div>
+          <div id="upload-result-id" style="font-size:.85rem; font-family:var(--mono); color:var(--teal); font-weight:600; word-break:break-all;"></div>
+          <div id="upload-result-expiry" style="font-size:.72rem; color:var(--amber); margin-top:.35rem;"></div>
+          <button class="btn btn-ghost btn-sm" style="margin-top:.75rem;" id="copy-result-btn">Copy Asset ID</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALLERY -->
+  <section id="gallery-section">
+    <h1 class="section-title">Active <span>Shares</span></h1>
+    <div class="stats-bar">
+      <div class="stat-item"><div class="stat-value" id="stat-total">—</div><div class="stat-label">Total</div></div>
+      <div class="stat-item"><div class="stat-value" id="stat-active">—</div><div class="stat-label">Active</div></div>
+      <div class="stat-item"><div class="stat-value" id="stat-expiring">—</div><div class="stat-label">Expiring Soon</div></div>
+      <div class="stat-item"><div class="stat-value" id="stat-storage">—</div><div class="stat-label">Storage</div></div>
+    </div>
+    <div class="controls">
+      <input type="text" class="search-box" id="search-box" placeholder="Search files..." />
+      <select id="filter-type" class="filter-select">
+        <option value="">All Types</option>
+        <option value="image/">Images</option>
+        <option value="video/">Videos</option>
+        <option value="audio/">Audio</option>
+        <option value="application/pdf">PDF</option>
+        <option value="application/zip">ZIP</option>
+      </select>
+      <button class="btn btn-ghost" id="refresh-btn">Refresh</button>
+    </div>
+    <div class="assets-grid" id="assets-grid"><div class="spinner"></div></div>
+  </section>
+
+  <!-- TTL DEMO -->
+  <section id="demo-section">
+    <h1 class="section-title">TTL <span>Expiry Demo</span></h1>
+    <div class="card demo-card">
+      <p style="font-size:.82rem; color:var(--text-sec); margin-bottom:1.25rem;">
+        Upload a file with a <strong style="color:var(--amber)">60-second TTL</strong>,
+        then watch Cosmos DB auto-delete it in real time — Privacy-by-Design.
+      </p>
+      <div class="field-group">
+        <label>Asset ID to Watch</label>
+        <input type="text" id="demo-asset-id" placeholder="Paste asset ID after upload..." />
+      </div>
+      <div style="display:flex; gap:.75rem; margin-bottom:1.25rem; flex-wrap:wrap;">
+        <button class="btn btn-primary" id="demo-start-btn">Start Watching</button>
+        <button class="btn btn-ghost" id="demo-stop-btn" disabled>Stop</button>
+      </div>
+      <div class="ttl-countdown" id="ttl-countdown">—</div>
+      <div style="font-size:.72rem; color:var(--muted); margin-bottom:.75rem;">seconds remaining</div>
+      <div class="status-log" id="status-log">
+        <div class="log-line info">[READY] Waiting to start polling...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUDIT -->
+  <section id="audit-section">
+    <h1 class="section-title">Audit <span>Log</span></h1>
+    <div class="card" style="overflow-x:auto;">
+      <p style="font-size:.78rem; color:var(--text-sec); margin-bottom:1rem;">
+        Client-side activity log. Server-side audit stored in Azure SQL <code style="color:var(--teal); font-family:var(--mono); font-size:.75rem;">AuditLog</code> table.
+      </p>
+      <table class="audit-table">
+        <thead><tr><th>Time</th><th>Action</th><th>Asset ID</th><th>Details</th><th>Status</th></tr></thead>
+        <tbody id="audit-tbody">
+          <tr><td colspan="5" style="text-align:center; color:var(--muted); padding:2rem;">No activity yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <strong>TempShare+</strong> &middot; Ephemeral Cloud-Native Multimedia Sharing Platform
+</footer>
+
+</div><!-- /app-shell -->
+
+<!-- ── EDIT MODAL ──────────────────────────────────────── -->
+<div class="modal-backdrop" id="edit-modal">
+  <div class="modal">
+    <h2>Edit Share</h2>
+    <input type="hidden" id="edit-asset-id" />
+    <input type="hidden" id="edit-owner-id" />
+    <div class="field-group">
+      <label>File Name</label>
+      <input type="text" id="edit-filename" />
+    </div>
+    <div class="field-group">
+      <label>Extend TTL</label>
+      <select id="edit-ttl">
+        <option value="0">Keep current expiry</option>
+        <option value="3600">Reset to 1 hour</option>
+        <option value="21600">Reset to 6 hours</option>
+        <option value="86400">Reset to 24 hours</option>
+        <option value="604800">Reset to 7 days</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="edit-cancel-btn">Cancel</button>
+      <button class="btn btn-primary" id="edit-save-btn">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<!-- ── APP INSIGHTS ────────────────────────────────────── -->
+<script>
+  var sdkInstance="appInsightsSDK";window[sdkInstance]="appInsights";var aiName=window[sdkInstance],aisdk=window[aiName]||function(cfg){
+  var d=cfg.cfg;return{initialize:!0,queue:[],sv:"8",version:2,config:d}}
+  ({cfg:{instrumentationKey:"YOUR_APPINSIGHTS_INSTRUMENTATIONKEY",disableFetchTracking:false,enableCorsCorrelation:true,enableRequestHeaderTracking:true,enableResponseHeaderTracking:true}});
+  window[aiName]=aisdk;
+  var AI={
+    trackPageView:function(n){try{if(window.appInsights&&window.appInsights.trackPageView)window.appInsights.trackPageView({name:n})}catch(e){}},
+    trackEvent:function(n,p){try{if(window.appInsights&&window.appInsights.trackEvent)window.appInsights.trackEvent({name:n},p)}catch(e){}},
+    trackMetric:function(n,v){try{if(window.appInsights&&window.appInsights.trackMetric)window.appInsights.trackMetric({name:n,average:v})}catch(e){}},
+    trackException:function(e){try{if(window.appInsights&&window.appInsights.trackException)window.appInsights.trackException({exception:e})}catch(x){}}
+  };
+  AI.trackPageView('TempShare+');
+</script>
+
+<!-- ── JAVASCRIPT ───────────────────────────────────────── -->
+<script>
+  var CONFIG = {
+    CREATE_URL:  'YOUR_LOGIC_APP_CREATE_URL',
+    LIST_URL:    'YOUR_LOGIC_APP_LIST_URL',
+    GET_URL:     'YOUR_LOGIC_APP_GET_URL',
+    UPDATE_URL:  'YOUR_LOGIC_APP_UPDATE_URL',
+    DELETE_URL:  'YOUR_LOGIC_APP_DELETE_URL',
+    USER_ID:     function(){ return document.getElementById('user-id').value || 'user_demo_001'; },
+  };
+
+  // ── DEMO USERS (mirrors Azure SQL seed data) ──────────────────────
+  var DEMO_USERS = {
+    'demo@tempshare.dev': { password: 'demo123', userId: 'user_demo_001', name: 'Demo User' }
+  };
+
+  // ── AUTH MODE ──────────────────────────────────────────────────────
+  var isRegisterMode = false;
+  var authTitle = document.getElementById('login-title');
+  var authBtn = document.getElementById('login-btn');
+  var authFooter = document.getElementById('login-footer');
+  var nameField = document.getElementById('name-field');
+  var rememberField = document.getElementById('remember-field');
+
+  document.getElementById('toggle-auth').addEventListener('click', function(e) {
+    e.preventDefault();
+    isRegisterMode = !isRegisterMode;
+    if (isRegisterMode) {
+      authTitle.textContent = 'Create your account';
+      authBtn.textContent = 'Sign Up';
+      authFooter.innerHTML = 'Already have an account? <a href="#" id="toggle-auth">Sign In</a>';
+      nameField.style.display = 'block';
+      rememberField.style.display = 'none';
+    } else {
+      authTitle.textContent = 'Sign in to continue';
+      authBtn.textContent = 'Sign In';
+      authFooter.innerHTML = 'Don\'t have an account? <a href="#" id="toggle-auth">Sign Up</a>';
+      nameField.style.display = 'none';
+      rememberField.style.display = 'flex';
+    }
+    // Re-bind toggle event to the new link
+    document.getElementById('toggle-auth').addEventListener('click', arguments.callee);
+  });
+
+  // ── PASSWORD TOGGLE ────────────────────────────────────────────────
+  document.getElementById('toggle-password').addEventListener('click', function() {
+    var pwdInput = document.getElementById('login-password');
+    var isPwd = pwdInput.type === 'password';
+    pwdInput.type = isPwd ? 'text' : 'password';
+    this.innerHTML = isPwd ? '&#x1F648;' : '&#x1F441;'; // Monkey vs Eye
+  });
+
+  // ── LOGIN ──────────────────────────────────────────────────────────
+  var loginScreen = document.getElementById('login-screen');
+  var appShell = document.getElementById('app-shell');
+
+  if (sessionStorage.getItem('ts_user')) {
+    var u = JSON.parse(sessionStorage.getItem('ts_user'));
+    showApp(u);
+  }
+
+  document.getElementById('login-btn').addEventListener('click', doAuth);
+  document.getElementById('login-password').addEventListener('keydown', function(e){ if(e.key==='Enter') doAuth(); });
+
+  function doAuth() {
+    var email = document.getElementById('login-email').value.trim();
+    var pass = document.getElementById('login-password').value;
+    var errEl = document.getElementById('login-error');
+
+    if (isRegisterMode) {
+      // Prototype Registration: Just simulate success
+      var name = document.getElementById('login-name').value.trim() || 'New User';
+      var session = { email: email, userId: 'user_' + Math.random().toString(36).substr(2, 9), name: name };
+      showApp(session);
+      AI.trackEvent('UserRegister', { email: email });
+      return;
+    }
+
+    var user = DEMO_USERS[email];
+    if (!user || user.password !== pass) {
+      errEl.classList.add('show');
+      return;
+    }
+    errEl.classList.remove('show');
+    var session = { email: email, userId: user.userId, name: user.name };
+    if (document.getElementById('login-remember').checked) {
+      sessionStorage.setItem('ts_user', JSON.stringify(session));
+    }
+    showApp(session);
+    AI.trackEvent('UserLogin', { email: email });
+  }
+
+  function showApp(session) {
+    document.getElementById('user-id').value = session.userId;
+    document.getElementById('user-display-name').textContent = session.name;
+    document.getElementById('user-avatar').textContent = session.name.charAt(0).toUpperCase();
+    loginScreen.classList.add('hidden');
+    appShell.classList.add('visible');
+  }
+
+  document.getElementById('logout-btn').addEventListener('click', function() {
+    sessionStorage.removeItem('ts_user');
+    loginScreen.classList.remove('hidden');
+    appShell.classList.remove('visible');
+    AI.trackEvent('UserLogout');
+  });
+
+  // ── AUDIT LOG ──────────────────────────────────────────────────────
+  var auditLog = [];
+  function addAudit(action, assetId, details, status) {
+    auditLog.unshift({ timestamp: new Date().toISOString(), action: action, assetId: assetId||'—', details: details||'', status: status||'OK' });
+    renderAudit();
+    AI.trackEvent('CRUDOperation', { action: action, assetId: assetId, status: status });
+  }
+  function renderAudit() {
+    var tbody = document.getElementById('audit-tbody');
+    if (!auditLog.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:2rem;">No activity yet</td></tr>'; return; }
+    tbody.innerHTML = auditLog.map(function(e){
+      return '<tr><td>'+e.timestamp.slice(11,19)+'</td><td><span class="action-badge '+e.action.toLowerCase()+'">'+e.action+'</span></td><td style="font-family:var(--mono);font-size:.68rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;">'+e.assetId+'</td><td style="font-size:.72rem;">'+e.details+'</td><td style="color:'+(e.status==='OK'?'var(--teal)':'var(--red)')+';">'+e.status+'</td></tr>';
+    }).join('');
+  }
+
+  // ── NAVIGATION ─────────────────────────────────────────────────────
+  document.querySelectorAll('nav a').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      document.querySelectorAll('nav a').forEach(function(a){ a.classList.remove('active'); });
+      document.querySelectorAll('main section').forEach(function(s){ s.classList.remove('active'); });
+      link.classList.add('active');
+      var target = link.dataset.section;
+      document.getElementById(target).classList.add('active');
+      if (target === 'gallery-section') loadGallery();
+      AI.trackPageView(target);
+    });
+  });
+
+  // ── TOAST ──────────────────────────────────────────────────────────
+  function toast(msg, type) {
+    type = type || 'ok';
+    var el = document.createElement('div');
+    el.className = 'toast '+(type==='error'?'error':type==='warn'?'warn':'');
+    el.textContent = msg;
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(function(){ el.remove(); }, 4000);
+  }
+
+  // ── FILE INPUT ─────────────────────────────────────────────────────
+  var fileInput = document.getElementById('file-input');
+  var uploadBtn = document.getElementById('upload-btn');
+  var dzFilename = document.getElementById('dz-filename');
+  var dropZone = document.getElementById('drop-zone');
+
+  fileInput.addEventListener('change', function(){
+    if (fileInput.files[0]) { dzFilename.textContent = fileInput.files[0].name+' ('+formatBytes(fileInput.files[0].size)+')'; uploadBtn.disabled=false; }
+  });
+  ['dragover','dragleave','drop'].forEach(function(evt){
+    dropZone.addEventListener(evt, function(e){
+      e.preventDefault();
+      if(evt==='dragover') dropZone.classList.add('drag-over');
+      else dropZone.classList.remove('drag-over');
+      if(evt==='drop'&&e.dataTransfer.files[0]){
+        fileInput.files=e.dataTransfer.files;
+        dzFilename.textContent=e.dataTransfer.files[0].name+' ('+formatBytes(e.dataTransfer.files[0].size)+')';
+        uploadBtn.disabled=false;
+      }
+    });
+  });
+
+  function formatBytes(b){ if(b<1024)return b+' B'; if(b<1048576)return(b/1024).toFixed(1)+' KB'; return(b/1048576).toFixed(1)+' MB'; }
+
+  // ── UPLOAD ─────────────────────────────────────────────────────────
+  uploadBtn.addEventListener('click', async function(){
+    var file=fileInput.files[0]; if(!file) return;
+    var ttl=parseInt(document.getElementById('expiry-select').value);
+    var userId=CONFIG.USER_ID();
+    var startTime=Date.now();
+    uploadBtn.disabled=true; uploadBtn.textContent='Uploading...';
+    var bar=document.getElementById('progress-bar'), fill=document.getElementById('progress-fill');
+    bar.classList.add('active'); fill.style.width='30%';
+    try {
+      var fd=new FormData(); fd.append('file',file); fd.append('ownerID',userId); fd.append('fileName',file.name); fd.append('mimeType',file.type); fd.append('ttl',ttl);
+      fill.style.width='60%';
+      var res=await fetch(CONFIG.CREATE_URL,{method:'POST',body:fd});
+      fill.style.width='100%';
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      var data=await res.json();
+      var aid=data.id||data.shareToken;
+      toast('Uploaded! ID: '+aid,'ok');
+      addAudit('UPLOAD',aid,file.name+' ('+formatBytes(file.size)+', TTL: '+ttl+'s)','OK');
+      AI.trackMetric('UploadDuration',Date.now()-startTime); AI.trackMetric('UploadFileSize',file.size);
+      document.getElementById('upload-result-id').textContent=aid;
+      document.getElementById('upload-result-expiry').textContent='Expires: '+(data.expiresAt||'in '+ttl+'s');
+      document.getElementById('upload-result').style.display='block';
+      if(data.id) document.getElementById('demo-asset-id').value=data.id;
+      fileInput.value=''; dzFilename.textContent=''; uploadBtn.disabled=true; uploadBtn.textContent='Upload & Generate Link';
+    } catch(err){
+      toast('Upload failed: '+err.message,'error'); addAudit('UPLOAD','—',err.message,'FAIL'); AI.trackException(err);
+    } finally { bar.classList.remove('active'); fill.style.width='0%'; uploadBtn.disabled=false; uploadBtn.textContent='Upload & Generate Link'; }
+  });
+
+  document.getElementById('copy-result-btn').addEventListener('click', function(){ navigator.clipboard.writeText(document.getElementById('upload-result-id').textContent); toast('Copied','ok'); });
+
+  // ── GALLERY ────────────────────────────────────────────────────────
+  function fileIcon(m){ if(!m)return'&#x1F4C4;'; if(m.startsWith('image/'))return'&#x1F5BC;'; if(m.startsWith('video/'))return'&#x1F3AC;'; if(m.startsWith('audio/'))return'&#x1F3B5;'; if(m==='application/pdf')return'&#x1F4D1;'; if(m.includes('zip'))return'&#x1F5DC;'; return'&#x1F4C4;'; }
+
+  function formatExpiry(ea,ttl){
+    if(!ea&&!ttl) return{label:'Unknown',cls:''};
+    var s=ea?Math.floor((new Date(ea)-Date.now())/1000):(ttl||0);
+    if(s<=0)return{label:'EXPIRED',cls:'expired'};
+    if(s<300)return{label:s+'s left',cls:'urgent'};
+    if(s<3600)return{label:Math.floor(s/60)+'m left',cls:'urgent'};
+    if(s<86400)return{label:Math.floor(s/3600)+'h '+Math.floor((s%3600)/60)+'m',cls:''};
+    return{label:Math.floor(s/86400)+'d left',cls:''};
+  }
+
+  async function loadGallery(){
+    var grid=document.getElementById('assets-grid'); grid.innerHTML='<div class="spinner"></div>';
+    var sv=document.getElementById('search-box').value.toLowerCase(), ft=document.getElementById('filter-type').value;
+    try{
+      var res=await fetch(CONFIG.LIST_URL+'?user='+encodeURIComponent(CONFIG.USER_ID()));
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      var assets=await res.json(), total=assets.length, active=0,expiring=0,tb=0;
+      assets.forEach(function(a){ var s=a.expiresAt?Math.floor((new Date(a.expiresAt)-Date.now())/1000):(a.ttl||0); if(s>0)active++; if(s>0&&s<600)expiring++; if(a.fileSizeBytes)tb+=a.fileSizeBytes; });
+      document.getElementById('stat-total').textContent=total;
+      document.getElementById('stat-active').textContent=active;
+      document.getElementById('stat-expiring').textContent=expiring;
+      document.getElementById('stat-storage').textContent=formatBytes(tb);
+      if(sv) assets=assets.filter(function(a){return(a.fileName||'').toLowerCase().includes(sv);});
+      if(ft) assets=assets.filter(function(a){return(a.mimeType||'').startsWith(ft);});
+      if(!assets.length){ grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="icon">&#x1F5C2;</div><p>No assets found.</p></div>'; return; }
+      grid.innerHTML='';
+      assets.forEach(function(a,i){
+        var ex=formatExpiry(a.expiresAt,a.ttl), isImg=(a.mimeType||'').startsWith('image/'), c=document.createElement('div');
+        c.className='asset-card'; c.style.animationDelay=(i*.05)+'s';
+        c.innerHTML=(isImg&&a.blobUrl?'<img class="asset-thumb" src="'+a.blobUrl+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'<div class="asset-thumb-placeholder">'+fileIcon(a.mimeType)+'</div>')+'<div class="asset-meta"><div class="asset-name">'+(a.fileName||'Unknown')+'</div><div class="asset-info">'+(a.mimeType||'unknown')+(a.fileSizeBytes?' &middot; '+formatBytes(a.fileSizeBytes):'')+'</div><div class="asset-ttl"><span class="expiry-badge '+ex.cls+'">'+ex.label+'</span></div><div class="asset-actions"><span class="share-token" title="Click to copy" data-token="'+(a.id||a.shareToken)+'">'+(a.id||a.shareToken||'').slice(0,16)+'...</span><button class="btn btn-edit btn-sm" data-id="'+(a.id||a.shareToken)+'" data-owner="'+(a.ownerID||'')+'" data-name="'+(a.fileName||'')+'">Edit</button><button class="btn btn-danger btn-sm" data-id="'+(a.id||a.shareToken)+'" data-owner="'+(a.ownerID||'')+'">Del</button></div></div>';
+        c.querySelector('.share-token').addEventListener('click',function(){navigator.clipboard.writeText(this.dataset.token);toast('Copied','ok');});
+        c.querySelector('.btn-edit').addEventListener('click',function(){openEditModal(this.dataset.id,this.dataset.owner,this.dataset.name);});
+        c.querySelector('.btn-danger').addEventListener('click',async function(){
+          var id=this.dataset.id,ow=this.dataset.owner; if(!confirm('Delete this asset?'))return;
+          try{ var r=await fetch(CONFIG.DELETE_URL+'?id='+encodeURIComponent(id)+'&owner='+encodeURIComponent(ow),{method:'DELETE'}); if(r.ok||r.status===204){c.style.opacity='0';c.style.transform='scale(.9)';c.style.transition='all .3s';setTimeout(function(){c.remove();loadGallery();},300);toast('Deleted','ok');addAudit('DELETE',id,'Deleted','OK');} else throw new Error('HTTP '+r.status);
+          }catch(e){toast('Delete failed: '+e.message,'error');addAudit('DELETE',id,e.message,'FAIL');}
+        });
+        grid.appendChild(c);
+      });
+    }catch(e){ grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="icon">&#x26A0;</div><p>Failed to load: '+e.message+'</p></div>'; }
+  }
+  document.getElementById('refresh-btn').addEventListener('click',loadGallery);
+  document.getElementById('search-box').addEventListener('input',loadGallery);
+  document.getElementById('filter-type').addEventListener('change',loadGallery);
+
+  // ── EDIT MODAL ─────────────────────────────────────────────────────
+  function openEditModal(id,owner,name){
+    document.getElementById('edit-asset-id').value=id; document.getElementById('edit-owner-id').value=owner;
+    document.getElementById('edit-filename').value=name; document.getElementById('edit-ttl').value='0';
+    document.getElementById('edit-modal').classList.add('visible');
+  }
+  document.getElementById('edit-cancel-btn').addEventListener('click',function(){document.getElementById('edit-modal').classList.remove('visible');});
+  document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('visible');});
+  document.getElementById('edit-save-btn').addEventListener('click',async function(){
+    var id=document.getElementById('edit-asset-id').value, ow=document.getElementById('edit-owner-id').value;
+    var nn=document.getElementById('edit-filename').value.trim(), nt=parseInt(document.getElementById('edit-ttl').value);
+    if(!nn){toast('Name required','warn');return;}
+    var body={id:id,ownerID:ow,fileName:nn}; if(nt>0) body.ttl=nt;
+    try{
+      var r=await fetch(CONFIG.UPDATE_URL,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      toast('Updated','ok'); addAudit('UPDATE',id,'Renamed: '+nn+(nt>0?', TTL: '+nt+'s':''),'OK');
+      document.getElementById('edit-modal').classList.remove('visible'); loadGallery();
+    }catch(e){toast('Update failed: '+e.message,'error');addAudit('UPDATE',id,e.message,'FAIL');}
+  });
+
+  // ── TTL DEMO ───────────────────────────────────────────────────────
+  var pollInterval=null, log=document.getElementById('status-log'), countdown=document.getElementById('ttl-countdown');
+  function logLine(m,t){var ts=new Date().toISOString().slice(11,19),l=document.createElement('div');l.className='log-line '+(t||'');l.textContent='['+ts+'] '+m;log.appendChild(l);log.scrollTop=log.scrollHeight;}
+
+  document.getElementById('demo-start-btn').addEventListener('click',async function(){
+    var aid=document.getElementById('demo-asset-id').value.trim(); if(!aid){toast('Enter asset ID','warn');return;}
+    document.getElementById('demo-start-btn').disabled=true; document.getElementById('demo-stop-btn').disabled=false;
+    log.innerHTML=''; logLine('Watching: '+aid,'info'); AI.trackEvent('TTLDemoStart',{assetId:aid});
+    var pc=0;
+    pollInterval=setInterval(async function(){
+      pc++;
+      try{
+        var r=await fetch(CONFIG.GET_URL+'?token='+encodeURIComponent(aid)+'&user='+encodeURIComponent(CONFIG.USER_ID()));
+        if(r.status===410||r.status===404){
+          countdown.textContent='0'; countdown.className='ttl-countdown expired';
+          logLine('EXPIRED! Cosmos DB TTL auto-deleted. Blob cleanup triggered.','err');
+          logLine('Polls: '+pc+'. HTTP '+r.status+' confirmed.','info');
+          clearInterval(pollInterval); document.getElementById('demo-start-btn').disabled=false; document.getElementById('demo-stop-btn').disabled=true;
+          toast('TTL expiry confirmed!','warn'); addAudit('EXPIRE',aid,'Auto-deleted after '+pc+' polls','OK');
+          AI.trackEvent('TTLExpiry',{assetId:aid,polls:String(pc)}); return;
+        }
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        var d=await r.json(), sl=d.expiresAt?Math.max(0,Math.floor((new Date(d.expiresAt)-Date.now())/1000)):(d.ttl||0);
+        countdown.textContent=sl; countdown.className='ttl-countdown'+(sl<15?' urgent':'');
+        logLine('EXISTS — '+sl+'s remaining. TTL: '+d.ttl+'. Poll #'+pc,'ok');
+      }catch(e){logLine('Error: '+e.message,'err');}
+    },5000);
+  });
+  document.getElementById('demo-stop-btn').addEventListener('click',function(){
+    clearInterval(pollInterval); document.getElementById('demo-start-btn').disabled=false; document.getElementById('demo-stop-btn').disabled=true; logLine('Stopped.','info');
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+{
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName":        { "type": "string", "defaultValue": "tempshare-create-share" },
+    "storageAccountName":  { "type": "string" },
+    "cosmosDbAccountName": { "type": "string" },
+    "cosmosDbDatabase":    { "type": "string", "defaultValue": "tempsharedb" },
+    "cosmosDbContainer":   { "type": "string", "defaultValue": "assets" },
+    "blobContainerName":   { "type": "string", "defaultValue": "assets" },
+    "location":            { "type": "string", "defaultValue": "[resourceGroup().location]" }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "triggers": {
+            "manual": {
+              "type": "Request",
+              "kind": "Http",
+              "inputs": {
+                "method": "POST",
+                "schema": {}
+              },
+              "cors": {
+                "allowedOrigins": ["*"]
+              }
+            }
+          },
+          "actions": {
+            "Parse_Form_Data": {
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@triggerBody()",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ownerID":  { "type": "string" },
+                    "fileName": { "type": "string" },
+                    "mimeType": { "type": "string" },
+                    "ttl":      { "type": "integer" }
+                  }
+                }
+              },
+              "runAfter": {}
+            },
+            "Generate_Asset_ID": {
+              "type": "Compose",
+              "inputs": "@concat('asset-', utcNow('yyyyMMddHHmmss'), '-', substring(guid(), 0, 8))",
+              "runAfter": { "Parse_Form_Data": ["Succeeded"] }
+            },
+            "Calculate_ExpiresAt": {
+              "type": "Compose",
+              "inputs": "@addSeconds(utcNow(), int(body('Parse_Form_Data')?['ttl']))",
+              "runAfter": { "Generate_Asset_ID": ["Succeeded"] }
+            },
+            "Create_Blob_V2": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['azureblob']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/v2/datasets/@{encodeURIComponent(encodeURIComponent(parameters('storageAccountName')))}/files",
+                "queries": {
+                  "folderPath": "/assets",
+                  "name": "@{outputs('Generate_Asset_ID')}",
+                  "queryParametersSingleEncoded": true
+                },
+                "body": "@triggerBody()?['$content']"
+              },
+              "runAfter": { "Calculate_ExpiresAt": ["Succeeded"] }
+            },
+            "Insert_Cosmos_Document": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['documentdb']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "[concat('/dbs/', parameters('cosmosDbDatabase'), '/colls/', parameters('cosmosDbContainer'), '/docs')]",
+                "body": {
+                  "id":          "@{outputs('Generate_Asset_ID')}",
+                  "ownerID":     "@{body('Parse_Form_Data')?['ownerID']}",
+                  "fileName":    "@{body('Parse_Form_Data')?['fileName']}",
+                  "mimeType":    "@{body('Parse_Form_Data')?['mimeType']}",
+                  "blobPath":    "@{concat('assets/', outputs('Generate_Asset_ID'))}",
+                  "ttl":         "@{int(body('Parse_Form_Data')?['ttl'])}",
+                  "uploadedAt":  "@{utcNow()}",
+                  "expiresAt":   "@{outputs('Calculate_ExpiresAt')}",
+                  "status":      "active"
+                }
+              },
+              "runAfter": { "Create_Blob_V2": ["Succeeded"] }
+            },
+            "Return_201_Created": {
+              "type": "Response",
+              "inputs": {
+                "statusCode": 201,
+                "headers": {
+                  "Content-Type": "application/json",
+                  "Access-Control-Allow-Origin": "*"
+                },
+                "body": {
+                  "id":         "@{outputs('Generate_Asset_ID')}",
+                  "ownerID":    "@{body('Parse_Form_Data')?['ownerID']}",
+                  "fileName":   "@{body('Parse_Form_Data')?['fileName']}",
+                  "ttl":        "@{int(body('Parse_Form_Data')?['ttl'])}",
+                  "expiresAt":  "@{outputs('Calculate_ExpiresAt')}",
+                  "message":    "Asset created successfully"
+                }
+              },
+              "runAfter": { "Insert_Cosmos_Document": ["Succeeded"] }
+            },
+            "Handle_Error": {
+              "type": "Response",
+              "inputs": {
+                "statusCode": 500,
+                "headers": { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+                "body": { "error": "Upload failed", "details": "@{result()}" }
+              },
+              "runAfter": {
+                "Create_Blob_V2":         ["Failed", "TimedOut"],
+                "Insert_Cosmos_Document": ["Failed", "TimedOut"]
+              }
+            }
+          }
+        },
+        "parameters": {
+          "$connections": {
+            "value": {
+              "azureblob":  { "connectionId": "", "connectionName": "azureblob",  "id": "" },
+              "documentdb": { "connectionId": "", "connectionName": "documentdb", "id": "" }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "logicAppUrl": {
+      "type": "string",
+      "value": "[listCallbackUrl(resourceId('Microsoft.Logic/workflows/triggers', parameters('logicAppName'), 'manual'), '2019-05-01').value]"
+    }
+  }
+}
