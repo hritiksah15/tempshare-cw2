@@ -15,3 +15,7 @@ coverage/
 # IDE
 .vscode/
 .idea/
+
+# Publish profiles (contain secrets)
+*.publishsettings
+*publish-profile*.xml
