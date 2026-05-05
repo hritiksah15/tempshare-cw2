@@ -20,6 +20,7 @@ const COSMOS_DB_NAME      = process.env.COSMOS_DB_NAME      || "tempsharedb";
 const COSMOS_CONTAINER    = process.env.COSMOS_CONTAINER    || "assets";
 const STORAGE_ACCOUNT_URL = process.env.STORAGE_ACCOUNT_URL;
 const BLOB_CONTAINER      = process.env.BLOB_CONTAINER      || "assets";
+const credential          = new DefaultAzureCredential();
 
 // ── MAIN FUNCTION ────────────────────────────────────────────────────────────
 module.exports = async function (context, myTimer) {
@@ -40,15 +41,14 @@ module.exports = async function (context, myTimer) {
   let bytesFreed   = 0;
 
   try {
-   // NEW - uses connection key (works with student subscription)
-    const cosmosClient = new CosmosClient({
-      endpoint: COSMOS_ENDPOINT,
-      key: process.env.COSMOS_KEY || undefined,
-      aadCredentials: process.env.COSMOS_KEY ? undefined : credential,
-    });
+    const cosmosClient = process.env.COSMOS_KEY
+      ? new CosmosClient({ endpoint: COSMOS_ENDPOINT, key: process.env.COSMOS_KEY })
+      : new CosmosClient({ endpoint: COSMOS_ENDPOINT, aadCredentials: credential });
 
-    const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.STORAGE_CONNECTION_STRING);
-    const containerClient   = blobServiceClient.getContainerClient(BLOB_CONTAINER);
+    const blobServiceClient = process.env.STORAGE_CONNECTION_STRING
+      ? BlobServiceClient.fromConnectionString(process.env.STORAGE_CONNECTION_STRING)
+      : new BlobServiceClient(STORAGE_ACCOUNT_URL, credential);
+    const containerClient = blobServiceClient.getContainerClient(BLOB_CONTAINER);
 
     const database  = cosmosClient.database(COSMOS_DB_NAME);
     const container = database.container(COSMOS_CONTAINER);

@@ -20,15 +20,23 @@ jest.mock("@azure/cosmos", () => ({
   })),
 }));
 
+const mockContainerClient = {
+  getBlobClient: () => ({
+    exists: mockExists,
+    delete: mockBlobDelete,
+  }),
+};
+
 jest.mock("@azure/storage-blob", () => ({
-  BlobServiceClient: jest.fn().mockImplementation(() => ({
-    getContainerClient: () => ({
-      getBlobClient: () => ({
-        exists: mockExists,
-        delete: mockBlobDelete,
-      }),
-    }),
-  })),
+  BlobServiceClient: (() => {
+    const ctor = jest.fn().mockImplementation(() => ({
+      getContainerClient: () => mockContainerClient,
+    }));
+    ctor.fromConnectionString = jest.fn().mockReturnValue({
+      getContainerClient: () => mockContainerClient,
+    });
+    return ctor;
+  })(),
 }));
 
 jest.mock("@azure/identity", () => ({
@@ -60,6 +68,8 @@ const createContext = () => ({
 beforeEach(() => {
   jest.clearAllMocks();
   process.env.COSMOS_ENDPOINT = "https://test.documents.azure.com:443/";
+  process.env.COSMOS_KEY = "dGVzdGtleQ==";
+  process.env.STORAGE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=test;AccountKey=dGVzdA==;EndpointSuffix=core.windows.net";
   process.env.STORAGE_ACCOUNT_URL = "https://teststorage.blob.core.windows.net";
 });
 

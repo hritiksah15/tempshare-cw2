@@ -95,12 +95,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'tempshare-frontend-b00923557'
-          slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
           package: frontend
 
   # ── JOB 4: VERIFY LOGIC APPS ────────────────────────────
@@ -143,14 +146,18 @@ jobs:
 
       - name: Install production dependencies
         working-directory: functions
-        run: npm ci --production
+        run: npm ci --omit=dev
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy to Azure Functions
         uses: azure/functions-action@v1
         with:
           app-name: ${{ secrets.AZURE_FUNCTION_APP_NAME }}
           package: functions
-          publish-profile: ${{ secrets.AZURE_FUNCTION_PUBLISH_PROFILE }}
 
   # ── JOB 6: VERIFY MONITORING ────────────────────────────
   verify-monitoring:
