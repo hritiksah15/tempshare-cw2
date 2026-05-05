@@ -40,14 +40,14 @@ module.exports = async function (context, myTimer) {
   let bytesFreed   = 0;
 
   try {
-    const credential = new DefaultAzureCredential();
-
+   // NEW - uses connection key (works with student subscription)
     const cosmosClient = new CosmosClient({
       endpoint: COSMOS_ENDPOINT,
-      aadCredentials: credential,
+      key: process.env.COSMOS_KEY || undefined,
+      aadCredentials: process.env.COSMOS_KEY ? undefined : credential,
     });
 
-    const blobServiceClient = new BlobServiceClient(STORAGE_ACCOUNT_URL, credential);
+    const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.STORAGE_CONNECTION_STRING);
     const containerClient   = blobServiceClient.getContainerClient(BLOB_CONTAINER);
 
     const database  = cosmosClient.database(COSMOS_DB_NAME);

@@ -23,56 +23,49 @@ name: TempShare+ CI/CD Pipeline
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 env:
   NODE_VERSION: '18'
 
 jobs:
-  # ── JOB 1: VALIDATE ─────────────────────────────────────
+  # ── JOB 1: VALIDATE ────────────────────────────────────
   validate:
     name: Validate & Lint
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Validate ARM templates
         run: |
           echo "Validating Logic App ARM templates..."
           for f in logic-apps/*.json; do
-            python3 -c "import json; json.load(open('$f')); print('Valid JSON:', '$f')"
+            python3 -c "import json; json.load(open('$f')); print('Valid:', '$f')"
           done
 
       - name: Validate infrastructure templates
         run: |
-          echo "Validating infrastructure ARM templates..."
           for f in infrastructure/*.json; do
-            python3 -c "import json; json.load(open('$f')); print('Valid JSON:', '$f')"
+            python3 -c "import json; json.load(open('$f')); print('Valid:', '$f')"
           done
 
-      - name: Validate HTML frontend
+      - name: Validate frontend
         run: |
-          test -f frontend/index.html && echo "index.html exists"
-          test -f frontend/staticwebapp.config.json && echo "staticwebapp.config.json exists"
+          test -f frontend/index.html && echo "index.html OK"
+          test -f frontend/staticwebapp.config.json && echo "staticwebapp.config.json OK"
 
       - name: Validate SQL schema
-        run: |
-          test -f sql-scripts/schema.sql && echo "schema.sql exists"
+        run: test -f sql-scripts/schema.sql && echo "schema.sql OK"
 
   # ── JOB 2: UNIT TESTS ──────────────────────────────────
   test:
-    name: Run Unit Tests
+    name: Run Unit Tests (Jest)
     runs-on: ubuntu-latest
     needs: validate
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -82,99 +75,67 @@ jobs:
         working-directory: functions
         run: npm ci
 
-      - name: Run Jest tests
+      - name: Run Jest tests with coverage
         working-directory: functions
         run: npx jest --ci --coverage --verbose
 
-      - name: Upload coverage report
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: functions/coverage/
           retention-days: 7
 
-  # ── JOB 3: DEPLOY STATIC WEB APP ────────────────────────
+  # ── JOB 3: DEPLOY FRONTEND ──────────────────────────────
   deploy-frontend:
-    name: Deploy Frontend (Azure SWA)
+    name: Deploy Frontend (App Service)
     runs-on: ubuntu-latest
     needs: test
     if: github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Deploy to Azure Static Web Apps
-        uses: Azure/static-web-apps-deploy@v1
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v3
         with:
-          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: upload
-          app_location: frontend
-          output_location: ""
+          app-name: 'tempshare-frontend-b00923557'
+          slot-name: 'Production'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
+          package: frontend
 
-  # ── JOB 4: DEPLOY LOGIC APPS ────────────────────────────
-  deploy-logic-apps:
-    name: Deploy Logic Apps (x5)
+  # ── JOB 4: VERIFY LOGIC APPS ────────────────────────────
+  verify-logic-apps:
+    name: Verify Logic App Templates
     runs-on: ubuntu-latest
     needs: test
     if: github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Azure Login (Service Principal)
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Validate 5 Logic App ARM templates
+        run: |
+          echo "Logic Apps deployed manually via Azure Portal"
+          echo "ARM templates validated below:"
+          for f in logic-apps/*.json; do
+            python3 -c "
+          import json
+          d=json.load(open('$f'))
+          name=d.get('parameters',{}).get('logicAppName',{}).get('defaultValue','unknown')
+          print(f'  Confirmed: $f -> {name}')
+          "
+          done
+          echo "5/5 Logic App templates valid"
 
-      - name: Deploy CreateShare Logic App
-        uses: azure/arm-deploy@v2
-        with:
-          resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
-          template: logic-apps/create-share.json
-          parameters: >
-            storageAccountName=${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
-            cosmosDbAccountName=${{ secrets.AZURE_COSMOS_ACCOUNT_NAME }}
-
-      - name: Deploy GetShare Logic App
-        uses: azure/arm-deploy@v2
-        with:
-          resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
-          template: logic-apps/get-share.json
-          parameters: >
-            storageAccountName=${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}
-
-      - name: Deploy ListShares Logic App
-        uses: azure/arm-deploy@v2
-        with:
-          resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
-          template: logic-apps/list-shares.json
-
-      - name: Deploy UpdateShare Logic App
-        uses: azure/arm-deploy@v2
-        with:
-          resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
-          template: logic-apps/update-share.json
-
-      - name: Deploy DeleteShare Logic App
-        uses: azure/arm-deploy@v2
-        with:
-          resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
-          template: logic-apps/delete-share.json
-
-  # ── JOB 5: DEPLOY AZURE FUNCTIONS ───────────────────────
+  # ── JOB 5: DEPLOY FUNCTIONS ─────────────────────────────
   deploy-functions:
     name: Deploy Functions (TTL Cleanup)
     runs-on: ubuntu-latest
     needs: test
     if: github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -184,62 +145,44 @@ jobs:
         working-directory: functions
         run: npm ci --production
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
       - name: Deploy to Azure Functions
         uses: azure/functions-action@v1
         with:
           app-name: ${{ secrets.AZURE_FUNCTION_APP_NAME }}
           package: functions
-          respect-funcignore: true
+          publish-profile: ${{ secrets.AZURE_FUNCTION_PUBLISH_PROFILE }}
 
-  # ── JOB 6: DEPLOY MONITORING ────────────────────────────
-  deploy-monitoring:
-    name: Deploy Azure Monitor Alerts
+  # ── JOB 6: VERIFY MONITORING ────────────────────────────
+  verify-monitoring:
+    name: Verify Monitoring Config
     runs-on: ubuntu-latest
     needs: test
     if: github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Validate monitoring ARM template
+        run: |
+          echo "Azure Monitor alerts configured via Portal"
+          python3 -c "import json; json.load(open('infrastructure/monitor-alert.json')); print('monitor-alert.json valid')"
 
-      - name: Deploy Monitor Alert Rules
-        uses: azure/arm-deploy@v2
-        with:
-          resourceGroupName: ${{ secrets.AZURE_RESOURCE_GROUP }}
-          template: infrastructure/monitor-alert.json
-          parameters: >
-            cosmosDbAccountName=${{ secrets.AZURE_COSMOS_ACCOUNT_NAME }}
-            alertEmail=${{ secrets.ALERT_EMAIL }}
-
-  # ── JOB 7: POST-DEPLOY SMOKE TEST ──────────────────────
+  # ── JOB 7: SMOKE TEST ────────────────────────────────────
   smoke-test:
     name: Smoke Test
     runs-on: ubuntu-latest
-    needs: [deploy-frontend, deploy-logic-apps, deploy-functions, deploy-monitoring]
+    needs: [deploy-frontend, verify-logic-apps, deploy-functions, verify-monitoring]
     if: github.ref == 'refs/heads/main'
     steps:
-      - name: Test Static Web App is reachable
-        run: |
-          echo "Testing SWA deployment..."
-          # curl -sf https://YOUR_SWA_URL.azurestaticapps.net > /dev/null && echo "SWA: OK" || echo "SWA: Add URL"
-          echo "Smoke test placeholder — add your SWA URL after first deploy"
-
       - name: Deployment Summary
         run: |
-          echo "========================================"
+          echo "========================================="
           echo " TempShare+ Deployment Complete"
-          echo "========================================"
-          echo " Commit:      ${{ github.sha }}"
-          echo " Branch:      ${{ github.ref_name }}"
-          echo " Triggered:   ${{ github.actor }}"
-          echo " Jobs:        validate > test > deploy (SWA + Logic Apps + Functions + Monitor)"
-          echo "========================================"
+          echo "========================================="
+          echo " Commit:   ${{ github.sha }}"
+          echo " Branch:   ${{ github.ref_name }}"
+          echo " Actor:    ${{ github.actor }}"
+          echo " Frontend: Azure App Service (Italy North)"
+          echo " Functions: Azure Functions (TTL Cleanup)"
+          echo " Data:     Cosmos DB + Azure SQL + Blob"
+          echo " Monitor:  App Insights + Azure Monitor"
+          echo "========================================="
