@@ -37,11 +37,11 @@
       --shadow:     0 4px 12px rgba(0,0,0,.05);
       --shadow-lg:  0 8px 24px rgba(0,0,0,.08);
     }
-
+ 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
+ 
     html { scroll-behavior: smooth; }
-
+ 
     body {
       background: var(--bg);
       color: var(--text);
@@ -50,7 +50,7 @@
       overflow-x: hidden;
       line-height: 1.5;
     }
-
+ 
     /* ── BACKGROUND ───────────────────────────────────── */
     body::before {
       content: '';
@@ -76,7 +76,7 @@
       pointer-events: none;
       z-index: 0;
     }
-
+ 
     /* ── LOGIN/REGISTER SCREEN ────────────────────────── */
     #login-screen {
       position: fixed;
@@ -97,7 +97,7 @@
       pointer-events: none;
     }
     #login-screen.hidden { display: none; }
-
+ 
     .login-container {
       position: relative;
       z-index: 1;
@@ -125,7 +125,7 @@
       color: var(--text-sec);
       letter-spacing: .02em;
     }
-
+ 
     .login-card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -139,7 +139,7 @@
       margin-bottom: 1.5rem;
       color: var(--text);
     }
-
+ 
     .login-field {
       margin-bottom: 1.15rem;
     }
@@ -169,7 +169,7 @@
       box-shadow: 0 0 0 3px var(--teal-glow);
     }
     .login-field input::placeholder { color: var(--muted); }
-
+ 
     .password-wrapper {
       position: relative;
     }
@@ -196,7 +196,7 @@
     .toggle-password:hover {
       color: var(--teal);
     }
-
+ 
     .login-remember {
       display: flex;
       align-items: center;
@@ -210,7 +210,7 @@
       width: 15px;
       height: 15px;
     }
-
+ 
     .login-btn {
       width: 100%;
       padding: .8rem;
@@ -230,7 +230,7 @@
       box-shadow: 0 4px 20px rgba(0,168,132,.2);
     }
     .login-btn:active { transform: translateY(0); }
-
+ 
     .login-footer {
       text-align: center;
       margin-top: 1.5rem;
@@ -253,7 +253,7 @@
       display: none;
     }
     .login-error.show { display: block; }
-
+ 
     /* ── HEADER ───────────────────────────────────────── */
     header {
       position: sticky;
@@ -269,7 +269,7 @@
       -webkit-backdrop-filter: blur(16px) saturate(180%);
       border-bottom: 1px solid var(--border);
     }
-
+ 
     .logo {
       font-weight: 800;
       font-size: 1.15rem;
@@ -278,9 +278,9 @@
       user-select: none;
     }
     .logo em { font-style: normal; color: var(--amber); }
-
+ 
     .header-right { display: flex; align-items: center; gap: .5rem; }
-
+ 
     .user-pill {
       display: flex;
       align-items: center;
@@ -318,7 +318,7 @@
       transition: all var(--t);
     }
     .logout-btn:hover { border-color: var(--red); color: var(--red); }
-
+ 
     nav { display: flex; align-items: center; gap: .25rem; }
     nav a {
       color: var(--muted);
@@ -335,11 +335,11 @@
       color: var(--teal);
       background: var(--teal-glow);
     }
-
+ 
     /* ── LAYOUT ───────────────────────────────────────── */
     #app-shell { display: none; }
     #app-shell.visible { display: block; }
-
+ 
     main {
       position: relative;
       z-index: 1;
@@ -347,10 +347,10 @@
       margin: 0 auto;
       padding: 2rem 1.5rem 4rem;
     }
-
+ 
     section { display: none; }
     section.active { display: block; }
-
+ 
     /* ── CARDS ────────────────────────────────────────── */
     .card {
       background: var(--card);
@@ -362,7 +362,7 @@
     .card:hover {
       border-color: var(--border-hover);
     }
-
+ 
     .section-title {
       font-size: 1.5rem;
       font-weight: 800;
@@ -376,10 +376,10 @@
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
-
+ 
     /* ── UPLOAD SECTION ───────────────────────────────── */
     #upload-section .card { max-width: 600px; }
-
+ 
     .drop-zone {
       border: 2px dashed var(--border);
       border-radius: var(--radius);
@@ -423,7 +423,7 @@
       color: var(--teal);
       font-weight: 600;
     }
-
+ 
     .field-group { margin-bottom: 1.1rem; }
     .field-group label {
       display: block;
@@ -450,7 +450,7 @@
       border-color: var(--teal);
       box-shadow: 0 0 0 3px var(--teal-glow);
     }
-
+ 
     /* ── BUTTONS ──────────────────────────────────────── */
     .btn {
       display: inline-flex;
@@ -477,7 +477,7 @@
     }
     .btn-primary:active { transform: translateY(0); }
     .btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
-
+ 
     .btn-danger {
       background: transparent;
       color: var(--red);
@@ -486,14 +486,14 @@
       font-size: .72rem;
     }
     .btn-danger:hover { background: var(--red-glow); border-color: var(--red); }
-
+ 
     .btn-ghost {
       background: transparent;
       color: var(--text-sec);
       border: 1px solid var(--border);
     }
     .btn-ghost:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-glow); }
-
+ 
     .btn-edit {
       background: transparent;
       color: var(--blue);
@@ -503,7 +503,7 @@
     }
     .btn-edit:hover { background: var(--blue-glow); border-color: var(--blue); }
     .btn-sm { padding: .35rem .75rem; font-size: .72rem; }
-
+ 
     /* ── PROGRESS & TOAST ─────────────────────────────── */
     .progress-bar {
       height: 3px;
@@ -520,7 +520,7 @@
       width: 0%;
       transition: width .3s ease;
     }
-
+ 
     #toast-container {
       position: fixed;
       bottom: 2rem;
@@ -548,7 +548,7 @@
       from { opacity: 0; transform: translateX(24px); }
       to   { opacity: 1; transform: translateX(0); }
     }
-
+ 
     /* ── GALLERY ──────────────────────────────────────── */
     #gallery-section .controls {
       display: flex;
@@ -583,13 +583,13 @@
       transition: border-color var(--t);
     }
     .filter-select:focus { border-color: var(--teal); }
-
+ 
     .assets-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
       gap: 1.25rem;
     }
-
+ 
     .asset-card {
       background: var(--card);
       border: 1px solid var(--border);
@@ -607,7 +607,7 @@
       from { opacity: 0; transform: translateY(12px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-
+ 
     .asset-thumb {
       width: 100%;
       height: 160px;
@@ -625,7 +625,7 @@
       font-size: 2.5rem;
       color: var(--muted);
     }
-
+ 
     .asset-meta { padding: 1rem; }
     .asset-name {
       font-size: .84rem;
@@ -638,7 +638,7 @@
     }
     .asset-info { font-size: .7rem; color: var(--muted); margin-bottom: .5rem; }
     .asset-ttl { font-size: .72rem; color: var(--muted); margin-bottom: .75rem; }
-
+ 
     .asset-actions {
       display: flex;
       gap: .5rem;
@@ -660,7 +660,7 @@
       transition: all var(--t);
     }
     .share-token:hover { color: var(--teal); background: var(--teal-glow); }
-
+ 
     /* ── STATS ────────────────────────────────────────── */
     .stats-bar {
       display: grid;
@@ -691,7 +691,7 @@
       margin-top: .25rem;
       font-weight: 500;
     }
-
+ 
     /* ── BADGES ───────────────────────────────────────── */
     .expiry-badge {
       display: inline-block;
@@ -715,7 +715,7 @@
       color: var(--red);
       border-color: rgba(255,77,106,.2);
     }
-
+ 
     /* ── EMPTY / LOADING ──────────────────────────────── */
     .empty-state {
       text-align: center;
@@ -724,7 +724,7 @@
     }
     .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; opacity: .3; }
     .empty-state p { font-size: .85rem; }
-
+ 
     .spinner {
       width: 28px; height: 28px;
       border: 2px solid var(--border);
@@ -734,7 +734,7 @@
       margin: 2rem auto;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-
+ 
     /* ── MODAL ─────────────────────────────────────────── */
     .modal-backdrop {
       position: fixed;
@@ -769,7 +769,7 @@
       justify-content: flex-end;
       margin-top: 1.5rem;
     }
-
+ 
     /* ── TTL DEMO ─────────────────────────────────────── */
     #demo-section .demo-card { max-width: 600px; }
     .ttl-countdown {
@@ -797,7 +797,7 @@
     .log-line.ok { color: var(--teal); }
     .log-line.err { color: var(--red); }
     .log-line.info { color: var(--amber); }
-
+ 
     /* ── AUDIT TABLE ──────────────────────────────────── */
     .audit-table {
       width: 100%;
@@ -822,7 +822,7 @@
     }
     .audit-table tr { transition: background var(--t); }
     .audit-table tr:hover { background: rgba(0,212,170,.02); }
-
+ 
     .action-badge {
       display: inline-block;
       font-size: .62rem;
@@ -837,7 +837,7 @@
     .action-badge.delete { background: var(--red-glow); color: var(--red); }
     .action-badge.update { background: var(--amber-glow); color: var(--amber); }
     .action-badge.expire { background: var(--red-glow); color: var(--red); }
-
+ 
     /* ── FOOTER ───────────────────────────────────────── */
     footer {
       text-align: center;
@@ -847,13 +847,13 @@
       border-top: 1px solid var(--border);
     }
     footer strong { color: var(--teal); font-weight: 600; }
-
+ 
     /* ── SCROLLBAR ─────────────────────────────────────── */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--border-hover); }
-
+ 
     /* ── RESPONSIVE ───────────────────────────────────── */
     @media (max-width: 768px) {
       header { padding: 0 1rem; }
@@ -865,7 +865,7 @@
   </style>
 </head>
 <body>
-
+ 
 <!-- ══════════ LOGIN SCREEN ══════════ -->
 <div id="login-screen">
   <div class="login-container">
@@ -902,10 +902,10 @@
     </div>
   </div>
 </div>
-
+ 
 <!-- ══════════ APP SHELL ══════════ -->
 <div id="app-shell">
-
+ 
 <header>
   <div class="logo">Temp<em>Share</em>+</div>
   <nav>
@@ -922,9 +922,9 @@
     <button class="logout-btn" id="logout-btn">Sign Out</button>
   </div>
 </header>
-
+ 
 <main>
-
+ 
   <!-- UPLOAD -->
   <section id="upload-section" class="active">
     <h1 class="section-title">Upload a <span>File</span></h1>
@@ -962,7 +962,7 @@
       </div>
     </div>
   </section>
-
+ 
   <!-- GALLERY -->
   <section id="gallery-section">
     <h1 class="section-title">Active <span>Shares</span></h1>
@@ -986,7 +986,7 @@
     </div>
     <div class="assets-grid" id="assets-grid"><div class="spinner"></div></div>
   </section>
-
+ 
   <!-- TTL DEMO -->
   <section id="demo-section">
     <h1 class="section-title">TTL <span>Expiry Demo</span></h1>
@@ -1010,7 +1010,7 @@
       </div>
     </div>
   </section>
-
+ 
   <!-- AUDIT -->
   <section id="audit-section">
     <h1 class="section-title">Audit <span>Log</span></h1>
@@ -1026,15 +1026,15 @@
       </table>
     </div>
   </section>
-
+ 
 </main>
-
+ 
 <footer>
   <strong>TempShare+</strong> &middot; Ephemeral Cloud-Native Multimedia Sharing Platform
 </footer>
-
+ 
 </div><!-- /app-shell -->
-
+ 
 <!-- ── EDIT MODAL ──────────────────────────────────────── -->
 <div class="modal-backdrop" id="edit-modal">
   <div class="modal">
@@ -1061,9 +1061,9 @@
     </div>
   </div>
 </div>
-
+ 
 <div id="toast-container"></div>
-
+ 
 <!-- ── APP INSIGHTS ────────────────────────────────────── -->
 <script>
   var sdkInstance="appInsightsSDK";window[sdkInstance]="appInsights";var aiName=window[sdkInstance],aisdk=window[aiName]||function(cfg){
@@ -1078,23 +1078,23 @@
   };
   AI.trackPageView('TempShare+');
 </script>
-
+ 
 <!-- ── JAVASCRIPT ───────────────────────────────────────── -->
 <script>
   var CONFIG = {
-    CREATE_URL:  'YOUR_LOGIC_APP_CREATE_URL',
-    LIST_URL:    'YOUR_LOGIC_APP_LIST_URL',
-    GET_URL:     'YOUR_LOGIC_APP_GET_URL',
-    UPDATE_URL:  'YOUR_LOGIC_APP_UPDATE_URL',
-    DELETE_URL:  'YOUR_LOGIC_APP_DELETE_URL',
+    CREATE_URL:  'https://prod-11.italynorth.logic.azure.com:443/workflows/3757b121a21c4b06900ba049fc1cdc7c/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=bAo6xk2yNaHahvcXD1zYHA4PcmuAgE3GtmlU4hSPt-U',
+    LIST_URL:    'https://prod-30.italynorth.logic.azure.com:443/workflows/e48211d81a7a406092a577d8e1cc71b0/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=AzIewq2Vpryzt_YXJJNQP2o-aQfjDZsBPpEfiilZPSE',
+    GET_URL:     'https://prod-15.italynorth.logic.azure.com:443/workflows/02ccbe084da74a538b10a15e1919eeff/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=j1cpd9SX0XaClybSJAb6jQNrhRaF8I0GSE8CAiRIxkk',
+    UPDATE_URL:  'https://prod-31.italynorth.logic.azure.com:443/workflows/74607955192442b8b2567cc8df7221e7/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=CNwqrBbwp0eXcWAP18zJVqd4iJVhS3B3tamg0pgoHjU',
+    DELETE_URL:  'https://prod-19.italynorth.logic.azure.com:443/workflows/8e4b190e0bc446a18a3c53c54c930f43/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=rnRlnjrZxiu9Huq3ByoFgItlatx3e1W36r55pgTKKNw',
     USER_ID:     function(){ return document.getElementById('user-id').value || 'user_demo_001'; },
   };
-
+ 
   // ── DEMO USERS (mirrors Azure SQL seed data) ──────────────────────
   var DEMO_USERS = {
     'demo@tempshare.dev': { password: 'demo123', userId: 'user_demo_001', name: 'Demo User' }
   };
-
+ 
   // ── AUTH MODE ──────────────────────────────────────────────────────
   var isRegisterMode = false;
   var authTitle = document.getElementById('login-title');
@@ -1102,7 +1102,7 @@
   var authFooter = document.getElementById('login-footer');
   var nameField = document.getElementById('name-field');
   var rememberField = document.getElementById('remember-field');
-
+ 
   document.getElementById('toggle-auth').addEventListener('click', function(e) {
     e.preventDefault();
     isRegisterMode = !isRegisterMode;
@@ -1122,7 +1122,7 @@
     // Re-bind toggle event to the new link
     document.getElementById('toggle-auth').addEventListener('click', arguments.callee);
   });
-
+ 
   // ── PASSWORD TOGGLE ────────────────────────────────────────────────
   document.getElementById('toggle-password').addEventListener('click', function() {
     var pwdInput = document.getElementById('login-password');
@@ -1130,24 +1130,24 @@
     pwdInput.type = isPwd ? 'text' : 'password';
     this.innerHTML = isPwd ? '&#x1F648;' : '&#x1F441;'; // Monkey vs Eye
   });
-
+ 
   // ── LOGIN ──────────────────────────────────────────────────────────
   var loginScreen = document.getElementById('login-screen');
   var appShell = document.getElementById('app-shell');
-
+ 
   if (sessionStorage.getItem('ts_user')) {
     var u = JSON.parse(sessionStorage.getItem('ts_user'));
     showApp(u);
   }
-
+ 
   document.getElementById('login-btn').addEventListener('click', doAuth);
   document.getElementById('login-password').addEventListener('keydown', function(e){ if(e.key==='Enter') doAuth(); });
-
+ 
   function doAuth() {
     var email = document.getElementById('login-email').value.trim();
     var pass = document.getElementById('login-password').value;
     var errEl = document.getElementById('login-error');
-
+ 
     if (isRegisterMode) {
       // Prototype Registration: Just simulate success
       var name = document.getElementById('login-name').value.trim() || 'New User';
@@ -1156,7 +1156,7 @@
       AI.trackEvent('UserRegister', { email: email });
       return;
     }
-
+ 
     var user = DEMO_USERS[email];
     if (!user || user.password !== pass) {
       errEl.classList.add('show');
@@ -1170,7 +1170,7 @@
     showApp(session);
     AI.trackEvent('UserLogin', { email: email });
   }
-
+ 
   function showApp(session) {
     document.getElementById('user-id').value = session.userId;
     document.getElementById('user-display-name').textContent = session.name;
@@ -1178,14 +1178,14 @@
     loginScreen.classList.add('hidden');
     appShell.classList.add('visible');
   }
-
+ 
   document.getElementById('logout-btn').addEventListener('click', function() {
     sessionStorage.removeItem('ts_user');
     loginScreen.classList.remove('hidden');
     appShell.classList.remove('visible');
     AI.trackEvent('UserLogout');
   });
-
+ 
   // ── AUDIT LOG ──────────────────────────────────────────────────────
   var auditLog = [];
   function addAudit(action, assetId, details, status) {
@@ -1200,7 +1200,7 @@
       return '<tr><td>'+e.timestamp.slice(11,19)+'</td><td><span class="action-badge '+e.action.toLowerCase()+'">'+e.action+'</span></td><td style="font-family:var(--mono);font-size:.68rem;max-width:140px;overflow:hidden;text-overflow:ellipsis;">'+e.assetId+'</td><td style="font-size:.72rem;">'+e.details+'</td><td style="color:'+(e.status==='OK'?'var(--teal)':'var(--red)')+';">'+e.status+'</td></tr>';
     }).join('');
   }
-
+ 
   // ── NAVIGATION ─────────────────────────────────────────────────────
   document.querySelectorAll('nav a').forEach(function(link) {
     link.addEventListener('click', function(e) {
@@ -1214,7 +1214,7 @@
       AI.trackPageView(target);
     });
   });
-
+ 
   // ── TOAST ──────────────────────────────────────────────────────────
   function toast(msg, type) {
     type = type || 'ok';
@@ -1224,13 +1224,13 @@
     document.getElementById('toast-container').appendChild(el);
     setTimeout(function(){ el.remove(); }, 4000);
   }
-
+ 
   // ── FILE INPUT ─────────────────────────────────────────────────────
   var fileInput = document.getElementById('file-input');
   var uploadBtn = document.getElementById('upload-btn');
   var dzFilename = document.getElementById('dz-filename');
   var dropZone = document.getElementById('drop-zone');
-
+ 
   fileInput.addEventListener('change', function(){
     if (fileInput.files[0]) { dzFilename.textContent = fileInput.files[0].name+' ('+formatBytes(fileInput.files[0].size)+')'; uploadBtn.disabled=false; }
   });
@@ -1246,9 +1246,9 @@
       }
     });
   });
-
+ 
   function formatBytes(b){ if(b<1024)return b+' B'; if(b<1048576)return(b/1024).toFixed(1)+' KB'; return(b/1048576).toFixed(1)+' MB'; }
-
+ 
   // ── UPLOAD ─────────────────────────────────────────────────────────
   uploadBtn.addEventListener('click', async function(){
     var file=fileInput.files[0]; if(!file) return;
@@ -1278,12 +1278,12 @@
       toast('Upload failed: '+err.message,'error'); addAudit('UPLOAD','—',err.message,'FAIL'); AI.trackException(err);
     } finally { bar.classList.remove('active'); fill.style.width='0%'; uploadBtn.disabled=false; uploadBtn.textContent='Upload & Generate Link'; }
   });
-
+ 
   document.getElementById('copy-result-btn').addEventListener('click', function(){ navigator.clipboard.writeText(document.getElementById('upload-result-id').textContent); toast('Copied','ok'); });
-
+ 
   // ── GALLERY ────────────────────────────────────────────────────────
   function fileIcon(m){ if(!m)return'&#x1F4C4;'; if(m.startsWith('image/'))return'&#x1F5BC;'; if(m.startsWith('video/'))return'&#x1F3AC;'; if(m.startsWith('audio/'))return'&#x1F3B5;'; if(m==='application/pdf')return'&#x1F4D1;'; if(m.includes('zip'))return'&#x1F5DC;'; return'&#x1F4C4;'; }
-
+ 
   function formatExpiry(ea,ttl){
     if(!ea&&!ttl) return{label:'Unknown',cls:''};
     var s=ea?Math.floor((new Date(ea)-Date.now())/1000):(ttl||0);
@@ -1293,14 +1293,14 @@
     if(s<86400)return{label:Math.floor(s/3600)+'h '+Math.floor((s%3600)/60)+'m',cls:''};
     return{label:Math.floor(s/86400)+'d left',cls:''};
   }
-
+ 
   async function loadGallery(){
     var grid=document.getElementById('assets-grid'); grid.innerHTML='<div class="spinner"></div>';
     var sv=document.getElementById('search-box').value.toLowerCase(), ft=document.getElementById('filter-type').value;
     try{
       var res=await fetch(CONFIG.LIST_URL+'?user='+encodeURIComponent(CONFIG.USER_ID()));
       if(!res.ok)throw new Error('HTTP '+res.status);
-      var assets=await res.json(), total=assets.length, active=0,expiring=0,tb=0;
+      var raw=await res.json(), assets=Array.isArray(raw)?raw:(raw.Documents||raw.value||[]), total=assets.length, active=0,expiring=0,tb=0;
       assets.forEach(function(a){ var s=a.expiresAt?Math.floor((new Date(a.expiresAt)-Date.now())/1000):(a.ttl||0); if(s>0)active++; if(s>0&&s<600)expiring++; if(a.fileSizeBytes)tb+=a.fileSizeBytes; });
       document.getElementById('stat-total').textContent=total;
       document.getElementById('stat-active').textContent=active;
@@ -1328,7 +1328,7 @@
   document.getElementById('refresh-btn').addEventListener('click',loadGallery);
   document.getElementById('search-box').addEventListener('input',loadGallery);
   document.getElementById('filter-type').addEventListener('change',loadGallery);
-
+ 
   // ── EDIT MODAL ─────────────────────────────────────────────────────
   function openEditModal(id,owner,name){
     document.getElementById('edit-asset-id').value=id; document.getElementById('edit-owner-id').value=owner;
@@ -1349,11 +1349,11 @@
       document.getElementById('edit-modal').classList.remove('visible'); loadGallery();
     }catch(e){toast('Update failed: '+e.message,'error');addAudit('UPDATE',id,e.message,'FAIL');}
   });
-
+ 
   // ── TTL DEMO ───────────────────────────────────────────────────────
   var pollInterval=null, log=document.getElementById('status-log'), countdown=document.getElementById('ttl-countdown');
   function logLine(m,t){var ts=new Date().toISOString().slice(11,19),l=document.createElement('div');l.className='log-line '+(t||'');l.textContent='['+ts+'] '+m;log.appendChild(l);log.scrollTop=log.scrollHeight;}
-
+ 
   document.getElementById('demo-start-btn').addEventListener('click',async function(){
     var aid=document.getElementById('demo-asset-id').value.trim(); if(!aid){toast('Enter asset ID','warn');return;}
     document.getElementById('demo-start-btn').disabled=true; document.getElementById('demo-stop-btn').disabled=false;
