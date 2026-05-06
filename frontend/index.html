@@ -1167,8 +1167,10 @@
         });
         var data = {};
         try { data = await res.json(); } catch(e) {}
-        if (!res.ok) {
-          errEl.textContent = data.message || data.error || 'Registration failed. Please try again.';
+        if (!res.ok || data.success === false) {
+          var errMsg = data.message || data.error || 'Registration failed. Please try again.';
+          if (typeof errMsg === 'object') errMsg = errMsg.message || JSON.stringify(errMsg);
+          errEl.textContent = String(errMsg);
           errEl.classList.add('show');
           return;
         }
@@ -1190,13 +1192,15 @@
         });
         var data = {};
         try { data = await res.json(); } catch(e) {}
-        if (!res.ok) {
-          errEl.textContent = data.message || data.error || 'Invalid email or password.';
+        if (!res.ok || data.success === false) {
+          var errMsg = data.message || data.error || 'Invalid email or password.';
+          if (typeof errMsg === 'object') errMsg = errMsg.message || JSON.stringify(errMsg);
+          errEl.textContent = String(errMsg);
           errEl.classList.add('show');
           return;
         }
         var session = {
-          email: email,
+          email: data.email || email,
           userId: data.userId || data.id || data.userID || 'user_demo_001',
           name: data.name || data.displayName || email.split('@')[0]
         };
@@ -1424,7 +1428,7 @@
     var grid=document.getElementById('assets-grid'); grid.innerHTML='<div class="spinner"></div>';
     var sv=document.getElementById('search-box').value.toLowerCase(), ft=document.getElementById('filter-type').value;
     try{
-      var res=await fetch(CONFIG.LIST_URL+'?user='+encodeURIComponent(CONFIG.USER_ID()));
+      vvar res=await fetch(CONFIG.LIST_URL+'&user='+encodeURIComponent(CONFIG.USER_ID()));
       if(!res.ok)throw new Error('HTTP '+res.status);
       var raw=await res.json();
       var assets=Array.isArray(raw)?raw:(raw.Documents||raw.value||raw.assets||raw.items||raw.results||[]);
@@ -1447,7 +1451,7 @@
         c.querySelector('.btn-edit').addEventListener('click',function(){openEditModal(this.dataset.id,this.dataset.owner,this.dataset.name);});
         c.querySelector('.btn-danger').addEventListener('click',async function(){
           var id=this.dataset.id,ow=this.dataset.owner; if(!confirm('Delete this asset?'))return;
-          try{ var r=await fetch(CONFIG.DELETE_URL+'?id='+encodeURIComponent(id)+'&owner='+encodeURIComponent(ow),{method:'DELETE'}); if(r.ok||r.status===204){c.style.opacity='0';c.style.transform='scale(.9)';c.style.transition='all .3s';setTimeout(function(){c.remove();loadGallery();},300);toast('Deleted','ok');addAudit('DELETE',id,'Deleted','OK');} else throw new Error('HTTP '+r.status);
+          try{ var r=await fetch(CONFIG.DELETE_URL+'&id='+encodeURIComponent(id)+'&owner='+encodeURIComponent(ow),{method:'DELETE'}); if(r.ok||r.status===204){c.style.opacity='0';c.style.transform='scale(.9)';c.style.transition='all .3s';setTimeout(function(){c.remove();loadGallery();},300);toast('Deleted','ok');addAudit('DELETE',id,'Deleted','OK');} else throw new Error('HTTP '+r.status);
           }catch(e){toast('Delete failed: '+e.message,'error');addAudit('DELETE',id,e.message,'FAIL');}
         });
         grid.appendChild(c);
@@ -1491,7 +1495,7 @@
     pollInterval=setInterval(async function(){
       pc++;
       try{
-        var r=await fetch(CONFIG.GET_URL+'?token='+encodeURIComponent(aid)+'&user='+encodeURIComponent(CONFIG.USER_ID()));
+        var r=await fetch(CONFIG.GET_URL+'&token='+encodeURIComponent(aid)+'&user='+encodeURIComponent(CONFIG.USER_ID()));
         if(r.status===410||r.status===404){
           countdown.textContent='0'; countdown.className='ttl-countdown expired';
           logLine('EXPIRED! Cosmos DB TTL auto-deleted. Blob cleanup triggered.','err');
