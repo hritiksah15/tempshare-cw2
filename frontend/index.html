@@ -1249,23 +1249,48 @@
  
   function formatBytes(b){ if(b<1024)return b+' B'; if(b<1048576)return(b/1024).toFixed(1)+' KB'; return(b/1048576).toFixed(1)+' MB'; }
  
+  // ── HELPERS ─────────────────────────────────────────────────────────
+  function fileToBase64(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() { resolve(reader.result.split(',')[1]); };
+      reader.onerror = function() { reject(new Error('File read failed')); };
+      reader.readAsDataURL(file);
+    });
+  }
+
   // ── UPLOAD ─────────────────────────────────────────────────────────
   uploadBtn.addEventListener('click', async function(){
     var file=fileInput.files[0]; if(!file) return;
     var ttl=parseInt(document.getElementById('expiry-select').value);
     var userId=CONFIG.USER_ID();
     var startTime=Date.now();
-    uploadBtn.disabled=true; uploadBtn.textContent='Uploading...';
+    uploadBtn.disabled=true; uploadBtn.textContent='Reading file...';
     var bar=document.getElementById('progress-bar'), fill=document.getElementById('progress-fill');
-    bar.classList.add('active'); fill.style.width='30%';
+    bar.classList.add('active'); fill.style.width='20%';
     try {
-      var fd=new FormData(); fd.append('file',file); fd.append('ownerID',userId); fd.append('fileName',file.name); fd.append('mimeType',file.type); fd.append('ttl',ttl);
+      var base64Content = await fileToBase64(file);
+      fill.style.width='40%';
+      uploadBtn.textContent='Uploading...';
+      var payload = {
+        ownerID: userId,
+        fileName: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        ttl: ttl,
+        fileSizeBytes: file.size,
+        "$content": base64Content
+      };
       fill.style.width='60%';
-      var res=await fetch(CONFIG.CREATE_URL,{method:'POST',body:fd});
+      var res = await fetch(CONFIG.CREATE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
       fill.style.width='100%';
-      if(!res.ok) throw new Error('HTTP '+res.status);
-      var data=await res.json();
-      var aid=data.id||data.shareToken;
+      var respText = await res.text();
+      if(!res.ok) throw new Error('HTTP '+res.status+' — '+respText.slice(0,200));
+      var data = JSON.parse(respText);
+      var aid=data.id||data.shareToken||data.assetId;
       toast('Uploaded! ID: '+aid,'ok');
       addAudit('UPLOAD',aid,file.name+' ('+formatBytes(file.size)+', TTL: '+ttl+'s)','OK');
       AI.trackMetric('UploadDuration',Date.now()-startTime); AI.trackMetric('UploadFileSize',file.size);
@@ -1300,7 +1325,10 @@
     try{
       var res=await fetch(CONFIG.LIST_URL+'?user='+encodeURIComponent(CONFIG.USER_ID()));
       if(!res.ok)throw new Error('HTTP '+res.status);
-      var raw=await res.json(), assets=Array.isArray(raw)?raw:(raw.Documents||raw.value||[]), total=assets.length, active=0,expiring=0,tb=0;
+      var raw=await res.json();
+      var assets=Array.isArray(raw)?raw:(raw.Documents||raw.value||raw.assets||raw.items||raw.results||[]);
+      if(!Array.isArray(assets)) assets=[];
+      var total=assets.length, active=0,expiring=0,tb=0;
       assets.forEach(function(a){ var s=a.expiresAt?Math.floor((new Date(a.expiresAt)-Date.now())/1000):(a.ttl||0); if(s>0)active++; if(s>0&&s<600)expiring++; if(a.fileSizeBytes)tb+=a.fileSizeBytes; });
       document.getElementById('stat-total').textContent=total;
       document.getElementById('stat-active').textContent=active;
