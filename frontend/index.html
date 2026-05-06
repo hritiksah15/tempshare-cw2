@@ -1082,6 +1082,10 @@
 <!-- ── JAVASCRIPT ───────────────────────────────────────── -->
 <script>
   var CONFIG = {
+    // ── AUTH ENDPOINTS ──────────────────────────────────
+    REGISTER_URL: 'https://prod-26.italynorth.logic.azure.com:443/workflows/58ecc7c5776a4e34896aeece8df1633e/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=zWN0Zxo6yO1Eoku_M48-kVtAgWDrMtAh311UfO5HZz8',
+    LOGIN_URL:    'https://prod-04.italynorth.logic.azure.com:443/workflows/53831ccf16d04ed98af9ea50b4d458f2/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=NIttyLW7m6PTMjvO7Yxbt7a5mhQOaYY4MA0hAbBoNfo',
+    // ── ASSET ENDPOINTS ─────────────────────────────────
     CREATE_URL:  'https://prod-11.italynorth.logic.azure.com:443/workflows/3757b121a21c4b06900ba049fc1cdc7c/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=bAo6xk2yNaHahvcXD1zYHA4PcmuAgE3GtmlU4hSPt-U',
     LIST_URL:    'https://prod-30.italynorth.logic.azure.com:443/workflows/e48211d81a7a406092a577d8e1cc71b0/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=AzIewq2Vpryzt_YXJJNQP2o-aQfjDZsBPpEfiilZPSE',
     GET_URL:     'https://prod-15.italynorth.logic.azure.com:443/workflows/02ccbe084da74a538b10a15e1919eeff/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=j1cpd9SX0XaClybSJAb6jQNrhRaF8I0GSE8CAiRIxkk',
@@ -1092,11 +1096,6 @@
     BLOB_CONTAINER:  'assets',
     BLOB_SAS:        'sv=2022-11-02&ss=b&srt=sco&sp=rwdlactiyfx&se=2027-12-31T23%3A59%3A59Z&st=2024-01-01T00%3A00%3A00Z&spr=https&sig=FOyanEPz7I9vXBkERIzuUV2lR%2FKxeVmHfz2ZM%2BrkOIU%3D',
     BLOB_BASE_URL:   function(){ return 'https://'+this.BLOB_ACCOUNT+'.blob.core.windows.net/'+this.BLOB_CONTAINER; },
-  };
- 
-  // ── DEMO USERS (mirrors Azure SQL seed data) ──────────────────────
-  var DEMO_USERS = {
-    'demo@tempshare.dev': { password: 'demo123', userId: 'user_demo_001', name: 'Demo User' }
   };
  
   // ── AUTH MODE ──────────────────────────────────────────────────────
@@ -1147,32 +1146,73 @@
   document.getElementById('login-btn').addEventListener('click', doAuth);
   document.getElementById('login-password').addEventListener('keydown', function(e){ if(e.key==='Enter') doAuth(); });
  
-  function doAuth() {
+  async function doAuth() {
     var email = document.getElementById('login-email').value.trim();
-    var pass = document.getElementById('login-password').value;
+    var pass  = document.getElementById('login-password').value;
     var errEl = document.getElementById('login-error');
- 
-    if (isRegisterMode) {
-      // Prototype Registration: Just simulate success
-      var name = document.getElementById('login-name').value.trim() || 'New User';
-      var session = { email: email, userId: 'user_' + Math.random().toString(36).substr(2, 9), name: name };
-      showApp(session);
-      AI.trackEvent('UserRegister', { email: email });
-      return;
-    }
- 
-    var user = DEMO_USERS[email];
-    if (!user || user.password !== pass) {
-      errEl.classList.add('show');
-      return;
-    }
+    var btn   = document.getElementById('login-btn');
+
     errEl.classList.remove('show');
-    var session = { email: email, userId: user.userId, name: user.name };
-    if (document.getElementById('login-remember').checked) {
-      sessionStorage.setItem('ts_user', JSON.stringify(session));
+    btn.disabled = true;
+    btn.textContent = isRegisterMode ? 'Signing up...' : 'Signing in...';
+
+    try {
+      if (isRegisterMode) {
+        // ── REGISTER ──────────────────────────────────────
+        var name = document.getElementById('login-name').value.trim() || 'New User';
+        var res = await fetch(CONFIG.REGISTER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, password: pass, name: name })
+        });
+        var data = {};
+        try { data = await res.json(); } catch(e) {}
+        if (!res.ok) {
+          errEl.textContent = data.message || data.error || 'Registration failed. Please try again.';
+          errEl.classList.add('show');
+          return;
+        }
+        var session = {
+          email: email,
+          userId: data.userId || data.id || data.userID || ('user_' + Math.random().toString(36).substr(2, 9)),
+          name: data.name || name
+        };
+        sessionStorage.setItem('ts_user', JSON.stringify(session));
+        showApp(session);
+        AI.trackEvent('UserRegister', { email: email });
+
+      } else {
+        // ── LOGIN ─────────────────────────────────────────
+        var res = await fetch(CONFIG.LOGIN_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, password: pass })
+        });
+        var data = {};
+        try { data = await res.json(); } catch(e) {}
+        if (!res.ok) {
+          errEl.textContent = data.message || data.error || 'Invalid email or password.';
+          errEl.classList.add('show');
+          return;
+        }
+        var session = {
+          email: email,
+          userId: data.userId || data.id || data.userID || 'user_demo_001',
+          name: data.name || data.displayName || email.split('@')[0]
+        };
+        if (document.getElementById('login-remember').checked) {
+          sessionStorage.setItem('ts_user', JSON.stringify(session));
+        }
+        showApp(session);
+        AI.trackEvent('UserLogin', { email: email });
+      }
+    } catch(err) {
+      errEl.textContent = 'Network error: ' + err.message;
+      errEl.classList.add('show');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = isRegisterMode ? 'Sign Up' : 'Sign In';
     }
-    showApp(session);
-    AI.trackEvent('UserLogin', { email: email });
   }
  
   function showApp(session) {
