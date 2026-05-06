@@ -1088,6 +1088,10 @@
     UPDATE_URL:  'https://prod-31.italynorth.logic.azure.com:443/workflows/74607955192442b8b2567cc8df7221e7/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=CNwqrBbwp0eXcWAP18zJVqd4iJVhS3B3tamg0pgoHjU',
     DELETE_URL:  'https://prod-19.italynorth.logic.azure.com:443/workflows/8e4b190e0bc446a18a3c53c54c930f43/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=rnRlnjrZxiu9Huq3ByoFgItlatx3e1W36r55pgTKKNw',
     USER_ID:     function(){ return document.getElementById('user-id').value || 'user_demo_001'; },
+    BLOB_ACCOUNT:    'tempsharestoreb00923557',
+    BLOB_CONTAINER:  'assets',
+    BLOB_SAS:        'sv=2022-11-02&ss=b&srt=sco&sp=rwdlactiyfx&se=2027-12-31T23%3A59%3A59Z&st=2024-01-01T00%3A00%3A00Z&spr=https&sig=FOyanEPz7I9vXBkERIzuUV2lR%2FKxeVmHfz2ZM%2BrkOIU%3D',
+    BLOB_BASE_URL:   function(){ return 'https://'+this.BLOB_ACCOUNT+'.blob.core.windows.net/'+this.BLOB_CONTAINER; },
   };
  
   // ── DEMO USERS (mirrors Azure SQL seed data) ──────────────────────
@@ -1259,28 +1263,70 @@
     });
   }
 
+  function fileToArrayBuffer(file) {
+    return new Promise(function(resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function() { resolve(reader.result); };
+      reader.onerror = function() { reject(new Error('File read failed')); };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function generateAssetId() {
+    var now = new Date();
+    var ts = now.getFullYear().toString() +
+      String(now.getMonth()+1).padStart(2,'0') +
+      String(now.getDate()).padStart(2,'0') +
+      String(now.getHours()).padStart(2,'0') +
+      String(now.getMinutes()).padStart(2,'0') +
+      String(now.getSeconds()).padStart(2,'0');
+    var rand = Math.random().toString(36).substring(2,10);
+    return 'asset-' + ts + '-' + rand;
+  }
+
+  async function uploadToBlob(file, blobName) {
+    var url = CONFIG.BLOB_BASE_URL() + '/' + encodeURIComponent(blobName) + '?' + CONFIG.BLOB_SAS;
+    var buf = await fileToArrayBuffer(file);
+    var res = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'x-ms-blob-type': 'BlockBlob',
+        'x-ms-version': '2022-11-02',
+        'Content-Type': file.type || 'application/octet-stream'
+      },
+      body: buf
+    });
+    if (!res.ok) throw new Error('Blob upload HTTP ' + res.status + ' — ' + (await res.text()).slice(0,200));
+    return CONFIG.BLOB_BASE_URL() + '/' + encodeURIComponent(blobName);
+  }
+
   // ── UPLOAD ─────────────────────────────────────────────────────────
   uploadBtn.addEventListener('click', async function(){
     var file=fileInput.files[0]; if(!file) return;
     var ttl=parseInt(document.getElementById('expiry-select').value);
     var userId=CONFIG.USER_ID();
     var startTime=Date.now();
-    uploadBtn.disabled=true; uploadBtn.textContent='Reading file...';
+    uploadBtn.disabled=true; uploadBtn.textContent='Uploading to Blob...';
     var bar=document.getElementById('progress-bar'), fill=document.getElementById('progress-fill');
-    bar.classList.add('active'); fill.style.width='20%';
+    bar.classList.add('active'); fill.style.width='10%';
     try {
-      var base64Content = await fileToBase64(file);
-      fill.style.width='40%';
-      uploadBtn.textContent='Uploading...';
+      // Step 1: Upload file directly to Azure Blob Storage
+      var blobName = generateAssetId();
+      await uploadToBlob(file, blobName);
+      fill.style.width='50%';
+      toast('Blob uploaded!','ok');
+
+      // Step 2: Send metadata to Logic App for Cosmos DB record
+      uploadBtn.textContent='Saving metadata...';
       var payload = {
         ownerID: userId,
         fileName: file.name,
         mimeType: file.type || 'application/octet-stream',
         ttl: ttl,
         fileSizeBytes: file.size,
-        "$content": base64Content
+        blobName: blobName
       };
-      fill.style.width='60%';
+      fill.style.width='75%';
       var res = await fetch(CONFIG.CREATE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1288,16 +1334,24 @@
       });
       fill.style.width='100%';
       var respText = await res.text();
-      if(!res.ok) throw new Error('HTTP '+res.status+' — '+respText.slice(0,200));
-      var data = JSON.parse(respText);
-      var aid=data.id||data.shareToken||data.assetId;
-      toast('Uploaded! ID: '+aid,'ok');
-      addAudit('UPLOAD',aid,file.name+' ('+formatBytes(file.size)+', TTL: '+ttl+'s)','OK');
+      var data = {};
+      try { data = JSON.parse(respText); } catch(e) {}
+      var aid = data.id || data.shareToken || data.assetId || blobName;
+
+      if (res.ok) {
+        toast('Uploaded! ID: '+aid,'ok');
+        addAudit('UPLOAD',aid,file.name+' ('+formatBytes(file.size)+', TTL: '+ttl+'s)','OK');
+      } else {
+        toast('Blob saved! Metadata warning: HTTP '+res.status,'warn');
+        addAudit('UPLOAD',blobName,file.name+' — blob OK, metadata: HTTP '+res.status,'WARN');
+        aid = blobName;
+      }
+
       AI.trackMetric('UploadDuration',Date.now()-startTime); AI.trackMetric('UploadFileSize',file.size);
       document.getElementById('upload-result-id').textContent=aid;
       document.getElementById('upload-result-expiry').textContent='Expires: '+(data.expiresAt||'in '+ttl+'s');
       document.getElementById('upload-result').style.display='block';
-      if(data.id) document.getElementById('demo-asset-id').value=data.id;
+      document.getElementById('demo-asset-id').value=aid;
       fileInput.value=''; dzFilename.textContent=''; uploadBtn.disabled=true; uploadBtn.textContent='Upload & Generate Link';
     } catch(err){
       toast('Upload failed: '+err.message,'error'); addAudit('UPLOAD','—',err.message,'FAIL'); AI.trackException(err);
@@ -1307,6 +1361,13 @@
   document.getElementById('copy-result-btn').addEventListener('click', function(){ navigator.clipboard.writeText(document.getElementById('upload-result-id').textContent); toast('Copied','ok'); });
  
   // ── GALLERY ────────────────────────────────────────────────────────
+  function getBlobUrl(asset) {
+    if (asset.blobUrl) return asset.blobUrl;
+    var name = asset.blobName || asset.id || asset.shareToken;
+    if (!name) return '';
+    return CONFIG.BLOB_BASE_URL() + '/' + encodeURIComponent(name) + '?' + CONFIG.BLOB_SAS;
+  }
+
   function fileIcon(m){ if(!m)return'&#x1F4C4;'; if(m.startsWith('image/'))return'&#x1F5BC;'; if(m.startsWith('video/'))return'&#x1F3AC;'; if(m.startsWith('audio/'))return'&#x1F3B5;'; if(m==='application/pdf')return'&#x1F4D1;'; if(m.includes('zip'))return'&#x1F5DC;'; return'&#x1F4C4;'; }
  
   function formatExpiry(ea,ttl){
@@ -1339,9 +1400,9 @@
       if(!assets.length){ grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="icon">&#x1F5C2;</div><p>No assets found.</p></div>'; return; }
       grid.innerHTML='';
       assets.forEach(function(a,i){
-        var ex=formatExpiry(a.expiresAt,a.ttl), isImg=(a.mimeType||'').startsWith('image/'), c=document.createElement('div');
+        var ex=formatExpiry(a.expiresAt,a.ttl), isImg=(a.mimeType||'').startsWith('image/'), bUrl=getBlobUrl(a), c=document.createElement('div');
         c.className='asset-card'; c.style.animationDelay=(i*.05)+'s';
-        c.innerHTML=(isImg&&a.blobUrl?'<img class="asset-thumb" src="'+a.blobUrl+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"/>':'<div class="asset-thumb-placeholder">'+fileIcon(a.mimeType)+'</div>')+'<div class="asset-meta"><div class="asset-name">'+(a.fileName||'Unknown')+'</div><div class="asset-info">'+(a.mimeType||'unknown')+(a.fileSizeBytes?' &middot; '+formatBytes(a.fileSizeBytes):'')+'</div><div class="asset-ttl"><span class="expiry-badge '+ex.cls+'">'+ex.label+'</span></div><div class="asset-actions"><span class="share-token" title="Click to copy" data-token="'+(a.id||a.shareToken)+'">'+(a.id||a.shareToken||'').slice(0,16)+'...</span><button class="btn btn-edit btn-sm" data-id="'+(a.id||a.shareToken)+'" data-owner="'+(a.ownerID||'')+'" data-name="'+(a.fileName||'')+'">Edit</button><button class="btn btn-danger btn-sm" data-id="'+(a.id||a.shareToken)+'" data-owner="'+(a.ownerID||'')+'">Del</button></div></div>';
+        c.innerHTML=(isImg&&bUrl?'<img class="asset-thumb" src="'+bUrl+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=asset-thumb-placeholder>'+fileIcon(a.mimeType)+'</div>\'"/>':'<div class="asset-thumb-placeholder">'+fileIcon(a.mimeType)+'</div>')+'<div class="asset-meta"><div class="asset-name">'+(a.fileName||'Unknown')+'</div><div class="asset-info">'+(a.mimeType||'unknown')+(a.fileSizeBytes?' &middot; '+formatBytes(a.fileSizeBytes):'')+'</div><div class="asset-ttl"><span class="expiry-badge '+ex.cls+'">'+ex.label+'</span></div><div class="asset-actions"><span class="share-token" title="Click to copy" data-token="'+(a.id||a.shareToken)+'">'+(a.id||a.shareToken||'').slice(0,16)+'...</span>'+(bUrl?'<a class="btn btn-ghost btn-sm" href="'+bUrl+'" target="_blank" rel="noopener">View</a>':'')+'<button class="btn btn-edit btn-sm" data-id="'+(a.id||a.shareToken)+'" data-owner="'+(a.ownerID||'')+'" data-name="'+(a.fileName||'')+'">Edit</button><button class="btn btn-danger btn-sm" data-id="'+(a.id||a.shareToken)+'" data-owner="'+(a.ownerID||'')+'">Del</button></div></div>';
         c.querySelector('.share-token').addEventListener('click',function(){navigator.clipboard.writeText(this.dataset.token);toast('Copied','ok');});
         c.querySelector('.btn-edit').addEventListener('click',function(){openEditModal(this.dataset.id,this.dataset.owner,this.dataset.name);});
         c.querySelector('.btn-danger').addEventListener('click',async function(){
