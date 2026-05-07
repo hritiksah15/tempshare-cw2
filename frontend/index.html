@@ -1097,6 +1097,14 @@
     BLOB_SAS:        'sv=2022-11-02&ss=b&srt=sco&sp=rwdlactiyfx&se=2027-12-31T23%3A59%3A59Z&st=2024-01-01T00%3A00%3A00Z&spr=https&sig=FOyanEPz7I9vXBkERIzuUV2lR%2FKxeVmHfz2ZM%2BrkOIU%3D',
     BLOB_BASE_URL:   function(){ return 'https://'+this.BLOB_ACCOUNT+'.blob.core.windows.net/'+this.BLOB_CONTAINER; },
   };
+
+  // ── SHA-256 HASH ───────────────────────────────────────────────────
+  async function sha256(text) {
+    var encoder = new TextEncoder();
+    var data = encoder.encode(text);
+    var hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+  }
  
   // ── AUTH MODE ──────────────────────────────────────────────────────
   var isRegisterMode = false;
@@ -1160,10 +1168,11 @@
       if (isRegisterMode) {
         // ── REGISTER ──────────────────────────────────────
         var name = document.getElementById('login-name').value.trim() || 'New User';
+        var hashedPass = await sha256(pass);
         var res = await fetch(CONFIG.REGISTER_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email, password: pass, name: name })
+          body: JSON.stringify({ email: email, password: hashedPass, name: name })
         });
         var data = {};
         try { data = await res.json(); } catch(e) {}
@@ -1177,7 +1186,8 @@
         var session = {
           email: email,
           userId: data.userId || data.id || data.userID || ('user_' + Math.random().toString(36).substr(2, 9)),
-          name: data.name || name
+          name: data.name || name,
+          role: 'user'
         };
         sessionStorage.setItem('ts_user', JSON.stringify(session));
         showApp(session);
@@ -1185,10 +1195,11 @@
 
       } else {
         // ── LOGIN ─────────────────────────────────────────
+        var hashedPass = await sha256(pass);
         var res = await fetch(CONFIG.LOGIN_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email, password: pass })
+          body: JSON.stringify({ email: email, password: hashedPass })
         });
         var data = {};
         try { data = await res.json(); } catch(e) {}
@@ -1202,7 +1213,8 @@
         var session = {
           email: data.email || email,
           userId: data.userId || data.id || data.userID || 'user_demo_001',
-          name: data.name || data.displayName || email.split('@')[0]
+          name: data.name || data.displayName || email.split('@')[0],
+          role: data.role || 'user'
         };
         if (document.getElementById('login-remember').checked) {
           sessionStorage.setItem('ts_user', JSON.stringify(session));
@@ -1446,7 +1458,7 @@
       assets.forEach(function(a,i){
         var ex=formatExpiry(a.expiresAt,a.ttl), isImg=(a.mimeType||'').startsWith('image/'), bUrl=getBlobUrl(a), c=document.createElement('div');
         c.className='asset-card'; c.style.animationDelay=(i*.05)+'s';
-        c.innerHTML=(isImg&&bUrl?'<img class="asset-thumb" src="'+bUrl+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=asset-thumb-placeholder>'+fileIcon(a.mimeType)+'</div>\'"/>':'<div class="asset-thumb-placeholder">'+fileIcon(a.mimeType)+'</div>')+'<div class="asset-meta"><div class="asset-name">'+(a.fileName||'Unknown')+'</div><div class="asset-info">'+(a.mimeType||'unknown')+(a.fileSizeBytes?' &middot; '+formatBytes(a.fileSizeBytes):'')+'</div><div class="asset-ttl"><span class="expiry-badge '+ex.cls+'">'+ex.label+'</span></div><div class="asset-actions"><span class="share-token" title="Click to copy" data-token="'+(a.id||a.shareToken)+'">'+(a.id||a.shareToken||'').slice(0,16)+'...</span>'+(bUrl?'<a class="btn btn-ghost btn-sm" href="'+bUrl+'" target="_blank" rel="noopener">View</a>':'')+'<button class="btn btn-edit btn-sm" data-id="'+(a.id||a.shareToken)+'" data-owner="'+(a.ownerID||'')+'" data-name="'+(a.fileName||'')+'">Edit</button><button class="btn btn-danger btn-sm" data-id="'+(a.id||a.shareToken)+'" data-owner="'+(a.ownerID||'')+'">Del</button></div></div>';
+        c.innerHTML=(isImg&&bUrl?'<img class="asset-thumb" src="'+bUrl+'" alt="" loading="lazy" onerror="this.outerHTML=\'<div class=asset-thumb-placeholder>'+fileIcon(a.mimeType)+'</div>\'"/>':'<div class="asset-thumb-placeholder">'+fileIcon(a.mimeType)+'</div>')+'<div class="asset-meta"><div class="asset-name">'+(a.fileName||'Unknown')+'</div><div class="asset-info">'+(a.mimeType||'unknown')+(a.fileSizeBytes?' &middot; '+formatBytes(a.fileSizeBytes):'')+'</div><div class="asset-ttl"><span class="expiry-badge '+ex.cls+'">'+ex.label+'</span></div><div class="asset-actions"><span class="share-token" title="Click to copy" data-token="'+(a.id||a.shareToken)+'">'+(a.id||a.shareToken||'').slice(0,16)+'...</span>'+(bUrl?'<a class="btn btn-ghost btn-sm" href="'+bUrl+'" target="_blank" rel="noopener">View</a>':'')+ (function(){ var sess=JSON.parse(sessionStorage.getItem('ts_user')||'{}'); var canEdit=(a.ownerID===sess.userId)||(sess.role==='admin'); return canEdit ? '<button class="btn btn-edit btn-sm" data-id="'+(a.id||a.shareToken)+'" data-owner="'+(a.ownerID||'')+'" data-name="'+(a.fileName||'')+'">Edit</button><button class="btn btn-danger btn-sm" data-id="'+(a.id||a.shareToken)+'" data-owner="'+(a.ownerID||'')+'">Del</button>' : ''; })() +'</div></div>';
         c.querySelector('.share-token').addEventListener('click',function(){navigator.clipboard.writeText(this.dataset.token);toast('Copied','ok');});
         c.querySelector('.btn-edit').addEventListener('click',function(){openEditModal(this.dataset.id,this.dataset.owner,this.dataset.name);});
         c.querySelector('.btn-danger').addEventListener('click',async function(){
